@@ -17,7 +17,15 @@ try {
         'time' => date('c'),
     ]);
 } catch (Throwable $error) {
-    error_log('AsistiGo health database error: ' . $error->getMessage());
+    $dbHost = getenv('ASISTIGO_DB_HOST') ?: '127.0.0.1';
+    $dbPort = getenv('ASISTIGO_DB_PORT') ?: '3306';
+    $dbIp = gethostbyname($dbHost);
+    error_log(
+        'AsistiGo health database target: '
+        . $dbHost . ':' . $dbPort
+        . ' resolved=' . $dbIp
+        . ' error=' . $error->getMessage()
+    );
     responder_json([
         'ok' => false,
         'error' => 'No se pudo conectar a la base de datos',
