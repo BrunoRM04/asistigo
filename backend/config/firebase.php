@@ -11,8 +11,8 @@ function firebase_base64url(string $valor): string
 
 function firebase_credenciales(): array
 {
-    $jsonBase64 = trim((string) getenv('ASISTIGO_FIREBASE_JSON_BASE64'));
-    $jsonDirecto = trim((string) getenv('ASISTIGO_FIREBASE_JSON'));
+    $jsonBase64 = trim(asistigo_env('ASISTIGO_FIREBASE_JSON_BASE64'));
+    $jsonDirecto = trim(asistigo_env('ASISTIGO_FIREBASE_JSON'));
 
     if ($jsonBase64 !== '') {
         $contenido = base64_decode($jsonBase64, true);
@@ -22,7 +22,7 @@ function firebase_credenciales(): array
     } elseif ($jsonDirecto !== '') {
         $contenido = $jsonDirecto;
     } else {
-        $ruta = getenv('ASISTIGO_FIREBASE_CREDENTIALS') ?: 'C:\\xampp\\secure\\asistigo-firebase.json';
+        $ruta = asistigo_env('ASISTIGO_FIREBASE_CREDENTIALS', 'C:\\xampp\\secure\\asistigo-firebase.json');
         $contenido = @file_get_contents($ruta);
     }
 

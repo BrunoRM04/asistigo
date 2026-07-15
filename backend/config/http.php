@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/env.php';
+
 date_default_timezone_set('America/Montevideo');
 
 header('Content-Type: application/json; charset=utf-8');
 $origen = (string) ($_SERVER['HTTP_ORIGIN'] ?? '');
-$origenesConfigurados = trim((string) getenv('ASISTIGO_ALLOWED_ORIGINS'));
+$origenesConfigurados = trim(asistigo_env('ASISTIGO_ALLOWED_ORIGINS'));
 $origenesPermitidos = $origenesConfigurados === ''
     ? ['*']
     : array_values(array_filter(array_map('trim', explode(',', $origenesConfigurados))));

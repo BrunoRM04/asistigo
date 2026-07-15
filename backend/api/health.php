@@ -12,8 +12,8 @@ try {
     responder_json([
         'ok' => true,
         'message' => 'Backend AsistiGo conectado a la base de datos',
-        'database' => getenv('ASISTIGO_DB_NAME') ?: ($_SERVER['ASISTIGO_DB_NAME'] ?? 'asistigo'),
-        'environment' => getenv('RAILWAY_ENVIRONMENT_NAME') ?: ($_SERVER['RAILWAY_ENVIRONMENT_NAME'] ?? 'local'),
+        'database' => asistigo_env('ASISTIGO_DB_NAME', 'asistigo'),
+        'environment' => asistigo_env('RAILWAY_ENVIRONMENT_NAME', 'local'),
         'time' => date('c'),
     ]);
 } catch (Throwable $error) {

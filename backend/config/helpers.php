@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/env.php';
+
 function limpiar_texto(mixed $valor): string
 {
     return trim((string) ($valor ?? ''));
@@ -9,24 +11,12 @@ function limpiar_texto(mixed $valor): string
 
 function asistigo_url_publica(string $ruta): string
 {
-    $baseConfigurada = rtrim(trim((string) getenv('ASISTIGO_PUBLIC_URL')), '/');
-    if ($baseConfigurada === '') {
-        $baseConfigurada = rtrim(trim((string) ($_SERVER['ASISTIGO_PUBLIC_URL'] ?? '')), '/');
-    }
-    if ($baseConfigurada === '' && function_exists('apache_getenv')) {
-        $baseConfigurada = rtrim(trim((string) (apache_getenv('ASISTIGO_PUBLIC_URL', true) ?: '')), '/');
-    }
+    $baseConfigurada = rtrim(trim(asistigo_env('ASISTIGO_PUBLIC_URL')), '/');
     if ($baseConfigurada !== '') {
         return $baseConfigurada . '/' . ltrim($ruta, '/');
     }
 
-    $railwayDomain = trim((string) getenv('RAILWAY_PUBLIC_DOMAIN'));
-    if ($railwayDomain === '') {
-        $railwayDomain = trim((string) ($_SERVER['RAILWAY_PUBLIC_DOMAIN'] ?? ''));
-    }
-    if ($railwayDomain === '' && function_exists('apache_getenv')) {
-        $railwayDomain = trim((string) (apache_getenv('RAILWAY_PUBLIC_DOMAIN', true) ?: ''));
-    }
+    $railwayDomain = trim(asistigo_env('RAILWAY_PUBLIC_DOMAIN'));
     if ($railwayDomain !== '') {
         return 'https://' . $railwayDomain . '/' . ltrim($ruta, '/');
     }

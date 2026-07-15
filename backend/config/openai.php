@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/env.php';
+
 function openai_config(): array
 {
     $envFile = dirname(__DIR__) . '/.env';
@@ -12,16 +14,16 @@ function openai_config(): array
                 continue;
             }
             [$nombre, $valor] = array_map('trim', explode('=', $linea, 2));
-            if (getenv($nombre) === false) {
+            if (asistigo_env($nombre) === '') {
                 putenv($nombre . '=' . trim($valor, "\"'"));
             }
         }
     }
 
     return [
-        'api_key' => trim((string) getenv('OPENAI_API_KEY')),
-        'model' => trim((string) (getenv('OPENAI_MODEL') ?: 'gpt-5.6')),
-        'timeout' => max(10, min(90, (int) (getenv('OPENAI_TIMEOUT_SECONDS') ?: 45))),
+        'api_key' => trim(asistigo_env('OPENAI_API_KEY')),
+        'model' => trim(asistigo_env('OPENAI_MODEL', 'gpt-5.6')),
+        'timeout' => max(10, min(90, (int) asistigo_env('OPENAI_TIMEOUT_SECONDS', '45'))),
     ];
 }
 

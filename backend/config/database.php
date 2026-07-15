@@ -2,34 +2,15 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/env.php';
+
 function asistigo_db(): PDO
 {
-    $env = static function (string $nombre, string $predeterminado = ''): string {
-        $valor = getenv($nombre);
-        if ($valor !== false && $valor !== '') {
-            return (string) $valor;
-        }
-
-        $valorServidor = $_SERVER[$nombre] ?? '';
-        if ($valorServidor !== '') {
-            return (string) $valorServidor;
-        }
-
-        if (function_exists('apache_getenv')) {
-            $valorApache = apache_getenv($nombre, true);
-            if ($valorApache !== false && $valorApache !== '') {
-                return (string) $valorApache;
-            }
-        }
-
-        return $predeterminado;
-    };
-
-    $host = $env('ASISTIGO_DB_HOST', '127.0.0.1');
-    $port = $env('ASISTIGO_DB_PORT', '3306');
-    $database = $env('ASISTIGO_DB_NAME', 'asistigo');
-    $username = $env('ASISTIGO_DB_USER', 'root');
-    $password = $env('ASISTIGO_DB_PASS');
+    $host = asistigo_env('ASISTIGO_DB_HOST', '127.0.0.1');
+    $port = asistigo_env('ASISTIGO_DB_PORT', '3306');
+    $database = asistigo_env('ASISTIGO_DB_NAME', 'asistigo');
+    $username = asistigo_env('ASISTIGO_DB_USER', 'root');
+    $password = asistigo_env('ASISTIGO_DB_PASS');
 
     $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
 
