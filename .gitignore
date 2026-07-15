@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+!backend/.env.example
+backend/.env
+backend/uploads/chat-ia/*
+!backend/uploads/.htaccess
+asisti-go/node_modules/
+asisti-go/dist/
+asisti-go/android/.gradle/
+asisti-go/android/local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+.vscode/
+
+# Credenciales privadas del servidor. Nunca deben versionarse.
+*firebase-admin*.json
+*service-account*.json
+backend/secrets/
+database/backups/

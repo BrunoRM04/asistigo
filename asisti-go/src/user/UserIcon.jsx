@@ -91,6 +91,15 @@ const ICON_PATHS = {
       <path d="m21 3-7 18-4-7-7-4z" />
     </>
   ),
+  attachment: (
+    <path d="m8.5 12.5 6.8-6.8a3.2 3.2 0 0 1 4.5 4.5l-8.4 8.4a5 5 0 0 1-7.1-7.1l8-8" />
+  ),
+  close: (
+    <>
+      <path d="m6 6 12 12" />
+      <path d="M18 6 6 18" />
+    </>
+  ),
   back: <path d="m15 18-6-6 6-6" />,
   logout: (
     <>

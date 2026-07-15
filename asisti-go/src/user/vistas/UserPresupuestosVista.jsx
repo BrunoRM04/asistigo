@@ -30,11 +30,11 @@ export function UserPresupuestosVista({ presupuestos, badgeEstado, onCambiarEsta
               ))}
             </div>
             <div className="user-presupuesto-total">
-              <span>Total estimado</span>
-              <strong>${p.total.toLocaleString('es-AR')}</strong>
+              <span>{p.tipo === 'solicitud' ? 'Estado del pedido' : 'Total estimado'}</span>
+              <strong>{p.tipo === 'solicitud' ? 'En revision' : `$${p.total.toLocaleString('es-AR')}`}</strong>
             </div>
 
-            {p.estado === 'pendiente' && (
+            {p.estado === 'pendiente' && p.tipo !== 'solicitud' && (
               <div className="user-fila-botones">
                 <button
                   className="user-boton user-boton-secundario"
@@ -54,6 +54,13 @@ export function UserPresupuestosVista({ presupuestos, badgeEstado, onCambiarEsta
             )}
           </article>
         ))}
+
+        {presupuestos.length === 0 && (
+          <div className="user-empty">
+            <UserIcon name="file" size={34} />
+            <p>No hay presupuestos ni solicitudes cargadas</p>
+          </div>
+        )}
       </div>
     </section>
   )

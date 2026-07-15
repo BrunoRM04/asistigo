@@ -1,0 +1,9 @@
+{
+  "appId": "com.asistigo.app",
+  "appName": "AsistiGo",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  }
+}

@@ -1,6 +1,20 @@
 import { UserIcon } from '../UserIcon'
 
-export function UserInicioVista({ vehiculo, vehiculos, onIr, onAbrirIA }) {
+export function UserInicioVista({ vehiculo, vehiculos, recordatorios = [], onIr, onAbrirIA }) {
+  if (!vehiculo) {
+    return (
+      <section className="user-vista">
+        <div className="user-tarjeta user-empty">
+          <UserIcon name="car" size={34} />
+          <p>Todavia no tenes vehiculos cargados.</p>
+          <button className="user-boton user-boton-principal" type="button" onClick={() => onIr('vehiculos')}>
+            Agregar primer vehiculo
+          </button>
+        </div>
+      </section>
+    )
+  }
+
   const circunferencia = 2 * Math.PI * 48
   const progreso = circunferencia - (vehiculo.salud / 100) * circunferencia
 
@@ -72,13 +86,17 @@ export function UserInicioVista({ vehiculo, vehiculos, onIr, onAbrirIA }) {
           </div>
         </div>
 
-        <div className="user-alerta">
-          <span className="user-alerta-icono"><UserIcon name="alert" size={20} /></span>
-          <div>
-            <p className="user-linea-titulo">VTV proxima a vencer</p>
-            <p className="user-linea-subtitulo">Tu Vento tiene un vencimiento importante esta semana.</p>
+        {recordatorios.length > 0 && (
+          <div className="user-alerta user-recordatorio-inicio">
+            <span className="user-alerta-icono"><UserIcon name="alert" size={20} /></span>
+            <div>
+              <p className="user-linea-titulo">{recordatorios[0].titulo}</p>
+              <p className="user-linea-subtitulo">
+                {recordatorios[0].descripcion || recordatorios[0].fecha_objetivo || 'Tenes un mantenimiento pendiente.'}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="user-tarjeta">
           <div className="user-tarjeta-encabezado user-section-head">

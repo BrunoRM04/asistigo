@@ -1,5 +1,9 @@
 ﻿import { useMemo, useState } from 'react'
+import { AsistiGoLogo } from '../components/AsistiGoLogo'
 import { MecanicoIcon } from './MecanicoIcon'
+import { useCallback, useEffect } from 'react'
+import { asistigoApi } from '../api/asistigoApi'
+import { useUbicacion } from '../hooks/useUbicacion'
 
 const mecanicoTaller = {
   nombre: 'Taller Norte Motors',
@@ -13,7 +17,7 @@ const mecanicoTaller = {
     'Más de 15 años de experiencia en mecánica general, frenos y suspensión. Diagnóstico computarizado y atención personalizada.',
 }
 
-const mecanicoSolicitudesIniciales = [
+const _mecanicoSolicitudesIniciales = [
   {
     id: 1,
     tipo: 'turno',
@@ -52,7 +56,7 @@ const mecanicoSolicitudesIniciales = [
   },
 ]
 
-const mecanicoAgendaInicial = [
+const _mecanicoAgendaInicial = [
   { id: 1, cliente: 'Martín Fernández', vehiculo: 'VW Vento · AB 123 CD', servicio: 'Cambio de pastillas + revisión', dia: 0, hora: '10:30', estado: 'confirmado' },
   { id: 2, cliente: 'Rocío Beltrán', vehiculo: 'Chevrolet Onix · CB 556 QT', servicio: 'Alineación y balanceo', dia: 0, hora: '13:00', estado: 'confirmado' },
   { id: 3, cliente: 'Lucía Ramírez', vehiculo: 'Ford Fiesta · FR 445 KL', servicio: 'Cambio de amortiguadores', dia: 1, hora: '09:15', estado: 'pendiente' },
@@ -60,7 +64,7 @@ const mecanicoAgendaInicial = [
   { id: 5, cliente: 'Martín Fernández', vehiculo: 'VW Vento · AB 123 CD', servicio: 'Cambio de aceite y filtros', dia: 4, hora: '09:00', estado: 'pendiente' },
 ]
 
-const mecanicoClientesIniciales = [
+const _mecanicoClientesIniciales = [
   {
     id: 1,
     nombre: 'Martín Fernández',
@@ -145,7 +149,7 @@ const mecanicoClientesIniciales = [
   },
 ]
 
-const mecanicoServiciosIniciales = [
+const _mecanicoServiciosIniciales = [
   { id: 1, nombre: 'Cambio de aceite y filtro', categoria: 'Mantenimiento', precio: 24000, duracion: '40 min' },
   { id: 2, nombre: 'Cambio de pastillas de freno', categoria: 'Frenos', precio: 38000, duracion: '1h' },
   { id: 3, nombre: 'Alineación y balanceo', categoria: 'Neumáticos', precio: 18000, duracion: '45 min' },
@@ -154,7 +158,7 @@ const mecanicoServiciosIniciales = [
   { id: 6, nombre: 'Revisión general pre-VTV', categoria: 'Inspección', precio: 15000, duracion: '50 min' },
 ]
 
-const mecanicoPresupuestosIniciales = [
+const _mecanicoPresupuestosIniciales = [
   {
     id: 1,
     cliente: 'Lucía Ramírez',
@@ -190,7 +194,7 @@ const mecanicoPresupuestosIniciales = [
   },
 ]
 
-const mecanicoChatsIniciales = [
+const _mecanicoChatsIniciales = [
   {
     id: 1,
     nombre: 'Martín Fernández',
@@ -234,6 +238,24 @@ const mecanicoHorariosIniciales = [
   { dia: 'Domingo', abre: '', cierra: '', activo: false },
 ]
 
+const mecanicoDatosVacios = {
+  taller: mecanicoTaller,
+  solicitudes: [],
+  agenda: [],
+  clientes: [],
+  servicios: [],
+  presupuestos: [],
+  chats: [],
+  horarios: mecanicoHorariosIniciales,
+  notificaciones: [],
+  estadisticas: {
+    facturado_mes: 0,
+    servicios_mes: 0,
+    clientes_activos: 0,
+    presupuestos_aceptados_pct: 0,
+  },
+}
+
 const mecanicoNavegacion = [
   { id: 'inicio', etiqueta: 'Inicio', icono: 'inicio' },
   { id: 'solicitudes', etiqueta: 'Solicitudes', icono: 'solicitudes', contador: 'solicitudes' },
@@ -247,6 +269,19 @@ const mecanicoNavegacion = [
 ]
 
 const mecanicoNavegacionMovil = ['inicio', 'solicitudes', 'agenda', 'clientes', 'perfil']
+
+const mecanicoRegistroServicios = [
+  'Cambio de aceite y filtro',
+  'Cambio de pastillas de freno',
+  'Alineación y balanceo',
+  'Diagnóstico computarizado',
+  'Cambio de amortiguadores',
+  'Revisión general pre-VTV',
+]
+
+const mecanicoRegistroPagos = ['Efectivo', 'Transferencia', 'Tarjeta', 'Mercado Pago']
+
+const mecanicoRegistroDias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 function mecanicoFormatoMoneda(valor) {
   return `$${valor.toLocaleString('es-AR')}`
@@ -282,36 +317,469 @@ function MecanicoBoton({ tipo = 'fantasma', compacto = false, bloque = false, ch
 }
 
 function MecanicoLogin({ onIngresar, onCliente }) {
-  return (
-    <section className="mecanico-login">
-      <div className="mecanico-login-contenido">
-        <div className="mecanico-marca">
-          <span className="mecanico-marca-punto" />
-          <span>ASISTIGO</span>
+  const [modoRegistro, setModoRegistro] = useState(false)
+  const [tipoPrestador, setTipoPrestador] = useState('Taller físico')
+  const [ofreceUrgencias, setOfreceUrgencias] = useState(false)
+  const [registroServicios, setRegistroServicios] = useState([])
+  const [registroVehiculos, setRegistroVehiculos] = useState([])
+  const [registroPagos, setRegistroPagos] = useState([])
+  const [ubicacionBase, setUbicacionBase] = useState('')
+  const { coords: ubicacionCoords, mensaje: ubicacionMensaje, cargando: buscandoUbicacion, usarUbicacionActual, buscarDireccion } = useUbicacion()
+  const [errorAcceso, setErrorAcceso] = useState('')
+  const [cargandoAcceso, setCargandoAcceso] = useState(false)
+
+  const alternarRegistro = (valor, setSeleccionados) => {
+    setSeleccionados((actuales) =>
+      actuales.includes(valor) ? actuales.filter((item) => item !== valor) : [...actuales, valor],
+    )
+  }
+
+  const usarMiUbicacion = async () => {
+    const data = await usarUbicacionActual()
+    if (data) {
+      setUbicacionBase(data.direccion || data.display_name || '')
+    }
+  }
+
+  const buscarUbicacionBase = async (evento) => {
+    const formulario = evento.currentTarget.form
+    const ciudadForm = formulario ? String(new FormData(formulario).get('ciudad') || '') : ''
+    const data = await buscarDireccion(ubicacionBase, ciudadForm, 'Uruguay')
+    if (data) {
+      setUbicacionBase(data.direccion || data.display_name || ubicacionBase)
+    }
+  }
+
+  const mapaRegistroUrl = ubicacionBase.trim()
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ubicacionBase.trim())}`
+    : 'https://www.google.com/maps'
+
+  const registrarTaller = async (evento) => {
+    evento.preventDefault()
+    const datos = new FormData(evento.currentTarget)
+    const horarios = Object.fromEntries(
+      mecanicoRegistroDias.map((dia) => [
+        dia,
+        {
+          abre: String(datos.get(`${dia}-abre`) || '08:30'),
+          cierra: String(datos.get(`${dia}-cierra`) || '18:00'),
+        },
+      ]),
+    )
+    setErrorAcceso('')
+    setCargandoAcceso(true)
+
+    try {
+      await onIngresar('registro', {
+        responsable: datos.get('responsable'),
+        celular: datos.get('celular'),
+        cedula: datos.get('cedula'),
+        email: datos.get('email'),
+        tipoPrestador: tipoPrestador,
+        nombreComercial: datos.get('nombreComercial'),
+        ciudad: datos.get('ciudad'),
+        ubicacionBase,
+        latitud: ubicacionCoords.latitud,
+        longitud: ubicacionCoords.longitud,
+        modalidad: datos.get('modalidad'),
+        zonaCobertura: datos.get('zonaCobertura'),
+        servicios: registroServicios,
+        vehiculos: registroVehiculos,
+        pagos: registroPagos,
+        nombreLegal: datos.get('nombreLegal'),
+        documento: datos.get('documento'),
+        fiscal: datos.get('fiscal'),
+        direccion: datos.get('direccion'),
+        radio: datos.get('radio'),
+        ofreceUrgencias,
+        urgencias: datos.get('urgencias'),
+        descripcion: datos.get('descripcion'),
+        experiencia: datos.get('experiencia'),
+        garantia: datos.get('garantia'),
+        horarios,
+        password: datos.get('password'),
+      })
+    } catch (error) {
+      setErrorAcceso(error.message)
+    } finally {
+      setCargandoAcceso(false)
+    }
+  }
+
+  const ingresarTaller = async (evento) => {
+    evento.preventDefault()
+    const datos = new FormData(evento.currentTarget)
+    setErrorAcceso('')
+    setCargandoAcceso(true)
+
+    try {
+      await onIngresar('login', {
+        email: datos.get('email'),
+        password: datos.get('password'),
+      })
+    } catch (error) {
+      setErrorAcceso(error.message)
+    } finally {
+      setCargandoAcceso(false)
+    }
+  }
+
+  if (modoRegistro) {
+    return (
+      <section className="mecanico-registro">
+        <div className="mecanico-registro-contenido">
+          <div className="mecanico-registro-cabecera">
+            <AsistiGoLogo className="user-marca" />
+            <button className="mecanico-registro-volver" type="button" onClick={() => setModoRegistro(false)}>
+              Volver al login
+            </button>
+          </div>
+
+          <div className="mecanico-registro-titulo">
+            <p className="user-eyebrow">Registro de taller</p>
+            <h1 className="user-acceso-titulo">Crear cuenta de prestador</h1>
+            <p className="user-acceso-subtitulo">
+              Carga los datos necesarios para operar solicitudes, agenda, servicios y perfil del taller.
+            </p>
+          </div>
+
+          <form
+            className="mecanico-registro-form"
+            onSubmit={registrarTaller}
+          >
+            <section className="mecanico-registro-bloque">
+              <div className="mecanico-registro-bloque-titulo">
+                <p className="user-eyebrow">Responsable</p>
+                <h2>Datos de contacto</h2>
+              </div>
+              <div className="mecanico-registro-grid">
+                <label className="mecanico-registro-campo">
+                  <span>Nombre y apellido *</span>
+                  <input className="mecanico-entrada" name="responsable" placeholder="Diego Torres" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Celular *</span>
+                  <input className="mecanico-entrada" name="celular" type="tel" placeholder="099 123 456" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Cédula de identidad *</span>
+                  <input className="mecanico-entrada" name="cedula" inputMode="numeric" placeholder="1.234.567-8" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Contraseña *</span>
+                  <input className="mecanico-entrada" name="password" type="password" minLength="6" placeholder="Mínimo 6 caracteres" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Email *</span>
+                  <input className="mecanico-entrada" name="email" type="email" placeholder="contacto@taller.com" required />
+                </label>
+              </div>
+            </section>
+
+            <section className="mecanico-registro-bloque">
+              <div className="mecanico-registro-bloque-titulo">
+                <p className="user-eyebrow">Prestador</p>
+                <h2>Perfil del taller</h2>
+              </div>
+              <div className="mecanico-registro-grid">
+                <label className="mecanico-registro-campo">
+                  <span>Tipo de prestador *</span>
+                  <select
+                    className="mecanico-entrada"
+                    name="tipoPrestador"
+                    value={tipoPrestador}
+                    onChange={(evento) => setTipoPrestador(evento.target.value)}
+                    required
+                  >
+                    <option>Taller físico</option>
+                    <option>Mecánico móvil</option>
+                    <option>Taller físico y móvil</option>
+                  </select>
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Nombre comercial/profesional *</span>
+                  <input className="mecanico-entrada" name="nombreComercial" placeholder="Taller Norte Motors" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Ciudad/localidad *</span>
+                  <input className="mecanico-entrada" name="ciudad" placeholder="Montevideo" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Ubicación base *</span>
+                  <input
+                    className="mecanico-entrada"
+                    name="ubicacionBase"
+                    placeholder="Dirección, barrio o coordenadas"
+                    value={ubicacionBase}
+                    onChange={(evento) => setUbicacionBase(evento.target.value)}
+                    required
+                  />
+                </label>
+                <div className="mecanico-registro-ubicacion">
+                  <button className="mecanico-boton mecanico-boton-fantasma mecanico-boton-compacto" type="button" onClick={usarMiUbicacion} disabled={buscandoUbicacion}>
+                    Usar mi ubicación
+                  </button>
+                  <button className="mecanico-boton mecanico-boton-fantasma mecanico-boton-compacto" type="button" onClick={buscarUbicacionBase} disabled={buscandoUbicacion}>
+                    Buscar dirección
+                  </button>
+                  <a className="mecanico-registro-mapa" href={mapaRegistroUrl} target="_blank" rel="noreferrer">
+                    Abrir mapa
+                  </a>
+                  {ubicacionMensaje && <p>{ubicacionMensaje}</p>}
+                </div>
+                <label className="mecanico-registro-campo">
+                  <span>Modalidad de atención *</span>
+                  <select className="mecanico-entrada" name="modalidad" required>
+                    <option>En taller</option>
+                    <option>A domicilio</option>
+                    <option>En taller y a domicilio</option>
+                    <option>Urgencias</option>
+                  </select>
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Zona de cobertura *</span>
+                  <input className="mecanico-entrada" name="zonaCobertura" placeholder="Ej: Prado, Centro, Cordón" required />
+                </label>
+              </div>
+            </section>
+
+            <section className="mecanico-registro-bloque mecanico-registro-bloque-operacion">
+              <div className="mecanico-registro-bloque-titulo">
+                <p className="user-eyebrow">Operación</p>
+                <h2>Servicios, vehículos y horarios</h2>
+              </div>
+              <div className="mecanico-registro-grid">
+                <fieldset className="mecanico-registro-campo mecanico-registro-campo-ancho">
+                  <legend>Servicios ofrecidos *</legend>
+                  <input className="mecanico-registro-requerido" value={registroServicios.join(',')} onChange={() => {}} required />
+                  <div className="mecanico-registro-checks">
+                    {mecanicoRegistroServicios.map((servicio) => (
+                      <label
+                        className={registroServicios.includes(servicio) ? 'mecanico-registro-check-activo' : ''}
+                        key={servicio}
+                      >
+                        <input
+                          type="checkbox"
+                          name="servicios"
+                          value={servicio}
+                          checked={registroServicios.includes(servicio)}
+                          onChange={() => alternarRegistro(servicio, setRegistroServicios)}
+                        />
+                        <span>{servicio}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset className="mecanico-registro-campo">
+                  <legend>Tipos de vehículos *</legend>
+                  <input className="mecanico-registro-requerido" value={registroVehiculos.join(',')} onChange={() => {}} required />
+                  <div className="mecanico-registro-checks">
+                    {['Autos', 'Motos', 'Utilitarios'].map((tipo) => (
+                      <label
+                        className={registroVehiculos.includes(tipo) ? 'mecanico-registro-check-activo' : ''}
+                        key={tipo}
+                      >
+                        <input
+                          type="checkbox"
+                          name="vehiculos"
+                          value={tipo}
+                          checked={registroVehiculos.includes(tipo)}
+                          onChange={() => alternarRegistro(tipo, setRegistroVehiculos)}
+                        />
+                        <span>{tipo}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset className="mecanico-registro-campo">
+                  <legend>Método de pago *</legend>
+                  <input className="mecanico-registro-requerido" value={registroPagos.join(',')} onChange={() => {}} required />
+                  <div className="mecanico-registro-checks">
+                    {mecanicoRegistroPagos.map((pago) => (
+                      <label
+                        className={registroPagos.includes(pago) ? 'mecanico-registro-check-activo' : ''}
+                        key={pago}
+                      >
+                        <input
+                          type="checkbox"
+                          name="pagos"
+                          value={pago}
+                          checked={registroPagos.includes(pago)}
+                          onChange={() => alternarRegistro(pago, setRegistroPagos)}
+                        />
+                        <span>{pago}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset className="mecanico-registro-campo mecanico-registro-campo-ancho">
+                  <legend>Horarios *</legend>
+                  <div className="mecanico-registro-horarios">
+                    {mecanicoRegistroDias.map((dia) => (
+                      <label className="mecanico-registro-horario-fila" key={dia}>
+                        <strong>{dia}</strong>
+                        <div>
+                          <span>Abre</span>
+                          <input className="mecanico-entrada" type="time" name={`${dia}-abre`} defaultValue="08:30" />
+                        </div>
+                        <div>
+                          <span>Cierra</span>
+                          <input className="mecanico-entrada" type="time" name={`${dia}-cierra`} defaultValue="18:00" />
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              </div>
+            </section>
+
+            <section className="mecanico-registro-bloque">
+              <div className="mecanico-registro-bloque-titulo">
+                <p className="user-eyebrow">Datos para operar</p>
+                <h2>Identificación y cobertura</h2>
+              </div>
+              <div className="mecanico-registro-grid">
+                <label className="mecanico-registro-campo">
+                  <span>Nombre legal *</span>
+                  <input className="mecanico-entrada" name="nombreLegal" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Documento legal *</span>
+                  <input className="mecanico-entrada" name="documento" required />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Identificación fiscal</span>
+                  <input className="mecanico-entrada" name="fiscal" placeholder="Obligatorio si es empresa" />
+                </label>
+                {(tipoPrestador === 'Taller físico' || tipoPrestador === 'Taller físico y móvil') && (
+                  <label className="mecanico-registro-campo">
+                    <span>Dirección exacta</span>
+                    <input className="mecanico-entrada" name="direccion" placeholder="Av. de las Instrucciones 2340" />
+                  </label>
+                )}
+                {(tipoPrestador === 'Mecánico móvil' || tipoPrestador === 'Taller físico y móvil') && (
+                  <label className="mecanico-registro-campo">
+                    <span>Radio de cobertura</span>
+                    <input className="mecanico-entrada" name="radio" placeholder="Ej: 10 km" />
+                  </label>
+                )}
+                <label className="mecanico-registro-campo mecanico-registro-campo-ancho">
+                  <span>Datos de urgencia</span>
+                  <input
+                    className="mecanico-entrada"
+                    name="urgencias"
+                    placeholder="Teléfono o detalle de disponibilidad"
+                    disabled={!ofreceUrgencias}
+                  />
+                </label>
+                <label className="mecanico-registro-toggle">
+                  <input
+                    type="checkbox"
+                    checked={ofreceUrgencias}
+                    onChange={(evento) => setOfreceUrgencias(evento.target.checked)}
+                  />
+                  <span>Ofrezco atención de urgencias</span>
+                </label>
+              </div>
+            </section>
+
+            <section className="mecanico-registro-bloque">
+              <div className="mecanico-registro-bloque-titulo">
+                <p className="user-eyebrow">Opcional</p>
+                <h2>Presentación del taller</h2>
+              </div>
+              <div className="mecanico-registro-grid">
+                <label className="mecanico-registro-campo">
+                  <span>Logo</span>
+                  <input className="mecanico-entrada mecanico-registro-archivo" type="file" accept="image/*" />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Fotos</span>
+                  <input className="mecanico-entrada mecanico-registro-archivo" type="file" accept="image/*" multiple />
+                </label>
+                <label className="mecanico-registro-campo mecanico-registro-campo-ancho">
+                  <span>Descripción</span>
+                  <textarea className="mecanico-entrada mecanico-textarea" name="descripcion" placeholder="Especialidad, experiencia y forma de trabajo" />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Años de experiencia</span>
+                  <input className="mecanico-entrada" name="experiencia" type="number" min="0" placeholder="15" />
+                </label>
+                <label className="mecanico-registro-campo">
+                  <span>Garantía</span>
+                  <select className="mecanico-entrada" name="garantia">
+                    <option>No especificar</option>
+                    <option>Garantía por mano de obra</option>
+                    <option>Garantía por servicio y repuestos</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <div className="mecanico-registro-pie">
+              {errorAcceso && <p className="user-registro-error">{errorAcceso}</p>}
+              <button className="mecanico-boton mecanico-boton-fantasma" type="button" onClick={() => setModoRegistro(false)}>
+                Cancelar
+              </button>
+              <button className="mecanico-boton mecanico-boton-primario" type="submit" disabled={cargandoAcceso}>
+                {cargandoAcceso ? 'Creando...' : 'Crear cuenta de taller'}
+              </button>
+            </div>
+          </form>
         </div>
-        <p className="mecanico-marca-etiqueta">Panel de talleres</p>
-        <h1 className="mecanico-login-titulo">Tu taller, siempre organizado.</h1>
-        <p className="mecanico-login-subtitulo">Ingresá para gestionar solicitudes, agenda e historial de tus clientes.</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="user-acceso-vista">
+      <div className="user-acceso-capa" />
+      <div className="user-acceso-caja">
+        <AsistiGoLogo className="user-marca" />
+        <h1 className="user-acceso-titulo">Tu taller, siempre organizado.</h1>
+        <p className="user-acceso-subtitulo">Ingresa para gestionar solicitudes, agenda e historial de tus clientes.</p>
         <form
-          className="mecanico-formulario"
-          onSubmit={(evento) => {
-            evento.preventDefault()
-            onIngresar()
-          }}
+          className="user-formulario"
+          onSubmit={ingresarTaller}
         >
-          <label className="mecanico-etiqueta">Correo electrónico</label>
-          <input className="mecanico-entrada" type="email" defaultValue="contacto@tallernorte.com" />
-          <label className="mecanico-etiqueta">Contraseña</label>
-          <input className="mecanico-entrada" type="password" defaultValue="asistigo123" />
-          <MecanicoBoton tipo="primario" bloque submit>
-            Ingresar
-          </MecanicoBoton>
+          <label className="user-etiqueta" htmlFor="mecanico-correo">
+            Correo electronico
+          </label>
+          <input
+            className="user-entrada"
+            id="mecanico-correo"
+            name="email"
+            type="email"
+            placeholder="contacto@taller.com"
+            required
+          />
+          <label className="user-etiqueta" htmlFor="mecanico-clave">
+            Contrasena
+          </label>
+          <input
+            className="user-entrada"
+            id="mecanico-clave"
+            name="password"
+            type="password"
+            placeholder="********"
+            required
+          />
+          {errorAcceso && <p className="user-registro-error">{errorAcceso}</p>}
+          <button className="user-boton user-boton-principal user-boton-bloque" type="submit" disabled={cargandoAcceso}>
+            {cargandoAcceso ? 'Ingresando...' : 'Ingresar'}
+          </button>
         </form>
-        <button className="mecanico-login-alterno" type="button" onClick={onCliente}>
+        <button className="user-acceso-link" type="button" onClick={onCliente}>
           Entrar como cliente
         </button>
+        <button className="user-acceso-link mecanico-registro-link" type="button" onClick={() => setModoRegistro(true)}>
+          Crear cuenta de taller
+        </button>
+        <p className="user-acceso-pie">AsistiGo - Panel de talleres</p>
       </div>
-      <p className="mecanico-login-pie">Asistigo · Panel del mecánico</p>
     </section>
   )
 }
@@ -369,7 +837,7 @@ function MecanicoSolicitudTarjeta({ solicitud, onAccion, onChat, onDescartar }) 
   )
 }
 
-function MecanicoTurnoFila({ turno, onChat, onConfirmar }) {
+function MecanicoTurnoFila({ turno, onChat, onConfirmar, onCompletar }) {
   return (
     <article className="mecanico-turno-fila">
       <div className="mecanico-turno-hora">
@@ -393,11 +861,11 @@ function MecanicoTurnoFila({ turno, onChat, onConfirmar }) {
             <MecanicoBoton tipo="borde" compacto onClick={() => onConfirmar(turno.id)}>
               Confirmar
             </MecanicoBoton>
-          ) : (
-            <MecanicoBoton tipo="borde" compacto>
+          ) : turno.estado === 'confirmado' ? (
+            <MecanicoBoton tipo="borde" compacto onClick={() => onCompletar(turno.id)}>
               Marcar completado
             </MecanicoBoton>
-          )}
+          ) : null}
         </div>
       </div>
     </article>
@@ -433,15 +901,20 @@ function MecanicoPresupuestoTarjeta({ presupuesto, onChat }) {
   )
 }
 
-function MecanicoPanelPrincipal({ onCerrarSesion }) {
+function MecanicoPanelPrincipal({ usuario, onCerrarSesion, pushDestino }) {
   const [vista, setVista] = useState('inicio')
-  const [solicitudes, setSolicitudes] = useState(mecanicoSolicitudesIniciales)
-  const [agenda, setAgenda] = useState(mecanicoAgendaInicial)
-  const [clientes, setClientes] = useState(mecanicoClientesIniciales)
-  const [servicios, setServicios] = useState(mecanicoServiciosIniciales)
-  const [presupuestos, setPresupuestos] = useState(mecanicoPresupuestosIniciales)
-  const [chats, setChats] = useState(mecanicoChatsIniciales)
-  const [horarios, setHorarios] = useState(mecanicoHorariosIniciales)
+  const [taller, setTaller] = useState(mecanicoDatosVacios.taller)
+  const [solicitudes, setSolicitudes] = useState(mecanicoDatosVacios.solicitudes)
+  const [agenda, setAgenda] = useState(mecanicoDatosVacios.agenda)
+  const [clientes, setClientes] = useState(mecanicoDatosVacios.clientes)
+  const [servicios, setServicios] = useState(mecanicoDatosVacios.servicios)
+  const [presupuestos, setPresupuestos] = useState(mecanicoDatosVacios.presupuestos)
+  const [chats, setChats] = useState(mecanicoDatosVacios.chats)
+  const [horarios, setHorarios] = useState(mecanicoDatosVacios.horarios)
+  const [notificaciones, setNotificaciones] = useState(mecanicoDatosVacios.notificaciones)
+  const [estadisticas, setEstadisticas] = useState(mecanicoDatosVacios.estadisticas)
+  const [cargandoDatos, setCargandoDatos] = useState(false)
+  const [backendError, setBackendError] = useState('')
   const [filtroSolicitudes, setFiltroSolicitudes] = useState('todas')
   const [diaAgenda, setDiaAgenda] = useState(0)
   const [busquedaClientes, setBusquedaClientes] = useState('')
@@ -452,9 +925,89 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
   const [toast, setToast] = useState('')
   const [presupuestoDraft, setPresupuestoDraft] = useState({ cliente: '', vehiculo: '', items: [{ detalle: '', costo: '' }] })
 
+  const cargarDatosMecanico = useCallback(async () => {
+    if (!usuario?.id || !usuario?.taller_id) return
+
+    setCargandoDatos(true)
+    setBackendError('')
+
+    try {
+      const respuesta = await asistigoApi.cargarMecanico({
+        mecanico_id: usuario.id,
+        taller_id: usuario.taller_id,
+      })
+      const data = { ...mecanicoDatosVacios, ...respuesta.data }
+      setTaller(data.taller)
+      setSolicitudes(data.solicitudes)
+      setAgenda(data.agenda)
+      setClientes(data.clientes)
+      setServicios(data.servicios)
+      setPresupuestos(data.presupuestos)
+      setChats(data.chats)
+      setHorarios(data.horarios)
+      setNotificaciones(data.notificaciones)
+      setEstadisticas(data.estadisticas)
+      setClienteSeleccionado((actual) => (data.clientes.some((cliente) => cliente.id === actual) ? actual : data.clientes[0]?.id || 0))
+    } catch (error) {
+      setBackendError(error.message)
+    } finally {
+      setCargandoDatos(false)
+    }
+  }, [usuario?.id, usuario?.taller_id])
+
+  useEffect(() => {
+    cargarDatosMecanico()
+  }, [cargarDatosMecanico])
+
+  useEffect(() => {
+    const ruta = pushDestino?.ruta || ''
+    if (!ruta) return
+
+    if (ruta.includes('chat')) setVista('chat')
+    else if (ruta.includes('presupuesto')) setVista('presupuestos')
+    else if (ruta.includes('agenda') || ruta.includes('turno')) setVista('agenda')
+    else if (ruta.includes('solicitud')) setVista('solicitudes')
+    else if (ruta.includes('vehiculo') || ruta.includes('cliente')) setVista('clientes')
+    else setModal({ tipo: 'notificaciones' })
+    cargarDatosMecanico()
+  }, [pushDestino, cargarDatosMecanico])
+
+  const ejecutarAccionMecanico = async (accion, payload = {}, refrescar = true) => {
+    if (!usuario?.id || !usuario?.taller_id) {
+      throw new Error('Sesion de mecanico incompleta')
+    }
+
+    const respuesta = await asistigoApi.accionMecanico({
+      accion,
+      mecanico_id: usuario.id,
+      taller_id: usuario.taller_id,
+      ...payload,
+    })
+
+    if (refrescar) {
+      await cargarDatosMecanico()
+    }
+
+    return respuesta
+  }
+
   const solicitudesNuevas = solicitudes.filter((solicitud) => solicitud.estado === 'nueva').length
   const chatsSinLeer = chats.filter((chat) => chat.sinLeer).length
-  const clienteActual = clientes.find((cliente) => cliente.id === clienteSeleccionado) || clientes[0]
+  const clienteActual = clientes.find((cliente) => cliente.id === clienteSeleccionado) || clientes[0] || {
+    id: 0,
+    cliente_id: 0,
+    vehiculo_id: 0,
+    nombre: 'Sin cliente',
+    vehiculo: 'Sin vehiculo',
+    patente: '',
+    km: 0,
+    visitas: 0,
+    historial: [],
+    diagnosticos: [],
+    fotos: [],
+    telefono: '',
+    correo: '',
+  }
   const chatActual = chats.find((chat) => chat.id === chatActivo)
 
   const saludo = useMemo(() => {
@@ -475,9 +1028,47 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const abrirChat = (id = chats[0].id) => {
-    setChats((actuales) => actuales.map((chat) => (chat.id === id ? { ...chat, sinLeer: false } : chat)))
-    setChatActivo(id)
+  const abrirChat = (destino = null) => {
+    if (typeof destino === 'number') {
+      setChats((actuales) => actuales.map((chat) => (chat.id === destino ? { ...chat, sinLeer: false } : chat)))
+      setChatActivo(destino)
+      setVista('chat-hilo')
+      return
+    }
+
+    const base = destino || clientes[0]
+    if (!base) {
+      mostrarToast('No hay clientes para abrir chat')
+      return
+    }
+
+    const existente = chats.find((chat) =>
+      (base.cliente_id && chat.cliente_id === base.cliente_id) ||
+      (base.vehiculo_id && chat.vehiculo_id === base.vehiculo_id),
+    )
+
+    if (existente) {
+      setChats((actuales) => actuales.map((chat) => (chat.id === existente.id ? { ...chat, sinLeer: false } : chat)))
+      setChatActivo(existente.id)
+      setVista('chat-hilo')
+      return
+    }
+
+    const idTemporal = `nuevo-${base.cliente_id || base.id}-${base.vehiculo_id || ''}`
+    setChats((actuales) => [
+      {
+        id: idTemporal,
+        cliente_id: base.cliente_id || base.id,
+        vehiculo_id: base.vehiculo_id || null,
+        nombre: base.cliente || base.nombre || 'Cliente',
+        ultimo: 'Conversación nueva',
+        hora: 'Ahora',
+        sinLeer: false,
+        mensajes: [],
+      },
+      ...actuales,
+    ])
+    setChatActivo(idTemporal)
     setVista('chat-hilo')
   }
 
@@ -488,9 +1079,22 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
   }
 
   const abrirModalPresupuesto = (solicitud) => {
-    const cliente = solicitud?.cliente || clientes[0].nombre
-    const vehiculo = solicitud?.vehiculo || `${clientes[0].vehiculo} · ${clientes[0].patente}`
-    setPresupuestoDraft({ cliente, vehiculo, items: [{ detalle: '', costo: '' }] })
+    const clienteBase = solicitud
+      ? clientes.find((cliente) => cliente.vehiculo_id === solicitud.vehiculo_id || cliente.cliente_id === solicitud.cliente_id)
+      : clientes[0]
+
+    if (!solicitud && !clienteBase) {
+      mostrarToast('No hay clientes para presupuestar')
+      return
+    }
+
+    setPresupuestoDraft({
+      cliente: solicitud?.cliente || clienteBase.nombre,
+      cliente_id: solicitud?.cliente_id || clienteBase.cliente_id,
+      vehiculo: solicitud?.vehiculo || `${clienteBase.vehiculo} · ${clienteBase.patente}`,
+      vehiculo_id: solicitud?.vehiculo_id || clienteBase.vehiculo_id,
+      items: [{ detalle: '', costo: '' }],
+    })
     setModal({ tipo: 'presupuesto', solicitud })
   }
 
@@ -502,34 +1106,51 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
     }
   }
 
-  const descartarSolicitud = (id) => {
-    setSolicitudes((actuales) => actuales.filter((solicitud) => solicitud.id !== id))
-    mostrarToast('Solicitud descartada')
+  const descartarSolicitud = async (id) => {
+    try {
+      await ejecutarAccionMecanico('descartar_solicitud', { id })
+      mostrarToast('Solicitud descartada')
+    } catch (error) {
+      mostrarToast(error.message)
+    }
   }
 
-  const confirmarTurno = (id) => {
-    setAgenda((actuales) => actuales.map((turno) => (turno.id === id ? { ...turno, estado: 'confirmado' } : turno)))
-    mostrarToast('Turno confirmado')
+  const confirmarTurno = async (id) => {
+    try {
+      await ejecutarAccionMecanico('confirmar_turno', { id })
+      mostrarToast('Turno confirmado')
+    } catch (error) {
+      mostrarToast(error.message)
+    }
   }
 
-  const confirmarSolicitudTurno = (evento, solicitud) => {
+  const completarTurno = async (id) => {
+    try {
+      await ejecutarAccionMecanico('completar_turno', { id })
+      mostrarToast('Turno completado')
+    } catch (error) {
+      mostrarToast(error.message)
+    }
+  }
+
+  const confirmarSolicitudTurno = async (evento, solicitud) => {
     evento.preventDefault()
     const datos = new FormData(evento.currentTarget)
     const fechaValor = String(datos.get('fecha') || '')
     const hora = String(datos.get('hora') || '—')
-    let dia = 1
-    if (fechaValor) {
-      const elegida = new Date(`${fechaValor}T00:00:00`)
-      const hoy = new Date(new Date().toDateString())
-      dia = Math.max(0, Math.round((elegida - hoy) / 86400000))
+
+    try {
+      await ejecutarAccionMecanico('confirmar_solicitud_turno', {
+        solicitud_id: solicitud.id,
+        fecha: fechaValor,
+        hora,
+        nota: String(datos.get('nota') || ''),
+      })
+      setModal(null)
+      mostrarToast('Turno confirmado y agregado a la agenda')
+    } catch (error) {
+      mostrarToast(error.message)
     }
-    setSolicitudes((actuales) => actuales.map((item) => (item.id === solicitud.id ? { ...item, estado: 'respondida' } : item)))
-    setAgenda((actuales) => [
-      { id: Date.now(), cliente: solicitud.cliente, vehiculo: solicitud.vehiculo, servicio: solicitud.mensaje.slice(0, 42), dia, hora, estado: 'confirmado' },
-      ...actuales,
-    ])
-    setModal(null)
-    mostrarToast('Turno confirmado y agregado a la agenda')
   }
 
   const actualizarItemPresupuesto = (indice, campo, valor) => {
@@ -545,143 +1166,158 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
 
   const totalPresupuestoDraft = presupuestoDraft.items.reduce((total, item) => total + (Number(item.costo) || 0), 0)
 
-  const enviarPresupuesto = () => {
+  const enviarPresupuesto = async () => {
     const itemsValidos = presupuestoDraft.items.filter((item) => item.detalle.trim() && Number(item.costo) > 0)
     if (!itemsValidos.length) {
       mostrarToast('Agregá al menos un ítem con monto')
       return
     }
-    const total = itemsValidos.reduce((suma, item) => suma + Number(item.costo), 0)
-    setPresupuestos((actuales) => [
-      {
-        id: Date.now(),
-        cliente: presupuestoDraft.cliente,
-        vehiculo: presupuestoDraft.vehiculo,
-        estado: 'pendiente',
+
+    try {
+      await ejecutarAccionMecanico('enviar_presupuesto', {
+        solicitud_id: modal?.solicitud?.id || null,
+        cliente_id: presupuestoDraft.cliente_id,
+        vehiculo_id: presupuestoDraft.vehiculo_id,
+        titulo: modal?.solicitud?.asunto || 'Presupuesto del taller',
         items: itemsValidos.map((item) => ({ detalle: item.detalle, costo: Number(item.costo) })),
-        total,
-      },
-      ...actuales,
-    ])
-    const solicitud = modal?.solicitud
-    if (solicitud) {
-      setSolicitudes((actuales) => actuales.map((item) => (item.id === solicitud.id ? { ...item, estado: 'respondida' } : item)))
+      })
+      setModal(null)
+      mostrarToast(`Presupuesto enviado a ${presupuestoDraft.cliente}`)
+    } catch (error) {
+      mostrarToast(error.message)
     }
-    setModal(null)
-    mostrarToast(`Presupuesto enviado a ${presupuestoDraft.cliente}`)
   }
 
-  const agregarServicioRealizado = (evento) => {
+  const agregarServicioRealizado = async (evento) => {
     evento.preventDefault()
     const datos = new FormData(evento.currentTarget)
-    const servicioNombre = String(datos.get('servicio') || '')
+    const servicioId = Number(datos.get('servicio_id') || 0)
+    const servicioNombre = servicios.find((servicio) => servicio.id === servicioId)?.nombre || String(datos.get('servicio') || '')
     const km = Number(datos.get('km') || 0)
     const costo = Number(datos.get('costo') || 0)
-    const categoria = servicios.find((servicio) => servicio.nombre === servicioNombre)?.categoria || 'General'
-    const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
-    setClientes((actuales) =>
-      actuales.map((cliente) =>
-        cliente.id === clienteSeleccionado
-          ? {
-              ...cliente,
-              visitas: cliente.visitas + 1,
-              km: km > cliente.km ? km : cliente.km,
-              historial: [
-                { fecha: hoy, servicio: servicioNombre, km: km || cliente.km, costo, etiquetas: [categoria] },
-                ...cliente.historial,
-              ],
-            }
-          : cliente,
-      ),
-    )
-    setModal(null)
-    mostrarToast('Servicio registrado en el historial')
+
+    try {
+      await ejecutarAccionMecanico('registrar_servicio', {
+        cliente_id: clienteActual.cliente_id,
+        vehiculo_id: clienteActual.vehiculo_id,
+        servicio_id: servicioId,
+        titulo: servicioNombre,
+        km,
+        costo,
+      })
+      setModal(null)
+      mostrarToast('Servicio registrado en el historial')
+    } catch (error) {
+      mostrarToast(error.message)
+    }
   }
 
-  const agregarTurnoManual = (evento) => {
+  const agregarTurnoManual = async (evento) => {
     evento.preventDefault()
     const datos = new FormData(evento.currentTarget)
     const cliente = clientes.find((item) => item.id === Number(datos.get('clienteId'))) || clientes[0]
+    if (!cliente) {
+      mostrarToast('No hay clientes para agendar')
+      return
+    }
     const servicio = String(datos.get('servicio') || '')
     const fechaValor = String(datos.get('fecha') || '')
     const hora = String(datos.get('hora') || '—')
-    let dia = diaAgenda
-    if (fechaValor) {
-      const elegida = new Date(`${fechaValor}T00:00:00`)
-      const hoy = new Date(new Date().toDateString())
-      dia = Math.max(0, Math.round((elegida - hoy) / 86400000))
+
+    try {
+      await ejecutarAccionMecanico('crear_turno', {
+        cliente_id: cliente.cliente_id,
+        vehiculo_id: cliente.vehiculo_id,
+        servicio,
+        fecha: fechaValor,
+        hora,
+      })
+      if (fechaValor) {
+        const elegida = new Date(`${fechaValor}T00:00:00`)
+        const hoy = new Date(new Date().toDateString())
+        const dia = Math.max(0, Math.round((elegida - hoy) / 86400000))
+        if (dia <= 13) setDiaAgenda(dia)
+      }
+      setModal(null)
+      mostrarToast('Turno agregado a la agenda')
+    } catch (error) {
+      mostrarToast(error.message)
     }
-    setAgenda((actuales) => [
-      { id: Date.now(), cliente: cliente.nombre, vehiculo: `${cliente.vehiculo} · ${cliente.patente}`, servicio, dia, hora, estado: 'confirmado' },
-      ...actuales,
-    ])
-    if (dia <= 6) setDiaAgenda(dia)
-    setModal(null)
-    mostrarToast('Turno agregado a la agenda')
   }
 
-  const guardarServicioCatalogo = (evento) => {
+  const guardarServicioCatalogo = async (evento) => {
     evento.preventDefault()
     const datos = new FormData(evento.currentTarget)
     const nombre = String(datos.get('nombre') || '')
     const categoria = String(datos.get('categoria') || '')
     const precio = Number(datos.get('precio') || 0)
     const duracion = String(datos.get('duracion') || '')
-    if (modal?.servicio) {
-      setServicios((actuales) => actuales.map((servicio) => (servicio.id === modal.servicio.id ? { ...servicio, nombre, categoria, precio, duracion } : servicio)))
-      mostrarToast('Servicio actualizado')
-    } else {
-      setServicios((actuales) => [...actuales, { id: Date.now(), nombre, categoria, precio, duracion }])
-      mostrarToast('Servicio agregado al catálogo')
+
+    try {
+      await ejecutarAccionMecanico('guardar_servicio_catalogo', {
+        id: modal?.servicio?.id || null,
+        nombre,
+        categoria,
+        precio,
+        duracion,
+      })
+      mostrarToast(modal?.servicio ? 'Servicio actualizado' : 'Servicio agregado al catálogo')
+      setModal(null)
+    } catch (error) {
+      mostrarToast(error.message)
     }
-    setModal(null)
   }
 
-  const eliminarServicioCatalogo = (id) => {
-    setServicios((actuales) => actuales.filter((servicio) => servicio.id !== id))
-    setModal(null)
-    mostrarToast('Servicio eliminado')
+  const eliminarServicioCatalogo = async (id) => {
+    try {
+      await ejecutarAccionMecanico('eliminar_servicio_catalogo', { id })
+      setModal(null)
+      mostrarToast('Servicio eliminado')
+    } catch (error) {
+      mostrarToast(error.message)
+    }
   }
 
-  const agregarDiagnostico = () => {
-    setClientes((actuales) =>
-      actuales.map((cliente) =>
-        cliente.id === clienteSeleccionado
-          ? {
-              ...cliente,
-              diagnosticos: [
-                {
-                  fecha: 'Hoy',
-                  descripcion: 'Diagnóstico guardado desde el panel. Se recomienda seguimiento en el próximo service.',
-                },
-                ...cliente.diagnosticos,
-              ],
-            }
-          : cliente,
-      ),
-    )
-    mostrarToast('Diagnóstico guardado')
+  const agregarDiagnostico = async (evento) => {
+    const textarea = evento.currentTarget.parentElement.querySelector('textarea')
+    const descripcion = textarea?.value?.trim() || ''
+    if (!descripcion) {
+      mostrarToast('Escribí un diagnóstico')
+      return
+    }
+
+    try {
+      await ejecutarAccionMecanico('guardar_diagnostico', {
+        vehiculo_id: clienteActual.vehiculo_id,
+        descripcion,
+      })
+      if (textarea) textarea.value = ''
+      mostrarToast('Diagnóstico guardado')
+    } catch (error) {
+      mostrarToast(error.message)
+    }
   }
 
-  const enviarMensaje = (evento) => {
+  const enviarMensaje = async (evento) => {
     evento.preventDefault()
     const datos = new FormData(evento.currentTarget)
     const texto = String(datos.get('mecanico-mensaje') || '').trim()
     if (!texto || !chatActivo) return
-    const hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
-    setChats((actuales) =>
-      actuales.map((chat) =>
-        chat.id === chatActivo
-          ? {
-              ...chat,
-              ultimo: texto,
-              hora: 'Ahora',
-              mensajes: [...chat.mensajes, { de: 'salida', texto, hora }],
-            }
-          : chat,
-      ),
-    )
-    evento.currentTarget.reset()
+
+    try {
+      const respuesta = await ejecutarAccionMecanico('enviar_mensaje', {
+        conversacion_id: typeof chatActivo === 'number' ? chatActivo : 0,
+        cliente_id: chatActual?.cliente_id || 0,
+        vehiculo_id: chatActual?.vehiculo_id || 0,
+        contenido: texto,
+      })
+      if (respuesta.conversacion_id) {
+        setChatActivo(respuesta.conversacion_id)
+      }
+      evento.currentTarget.reset()
+    } catch (error) {
+      mostrarToast(error.message)
+    }
   }
 
   const solicitudesFiltradas = solicitudes.filter((solicitud) => {
@@ -703,13 +1339,13 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
   const topServiciosMes = servicios.slice().sort((a, b) => b.precio - a.precio).slice(0, 4)
   const serviciosRealizadosTotal = clientes.reduce((total, cliente) => total + cliente.historial.length, 0)
   const kpis = [
-    { icono: 'solicitudes', valor: solicitudesNuevas, etiqueta: 'Solicitudes nuevas', delta: '+2 hoy' },
-    { icono: 'agenda', valor: hoyTurnos.length, etiqueta: 'Turnos para hoy', delta: '2 confirmados' },
-    { icono: 'moneda', valor: '$182.500', etiqueta: 'Facturado esta semana', delta: '+12% vs. anterior' },
-    { icono: 'estrella', valor: '4.8', etiqueta: 'Rating promedio', delta: '63 calificaciones' },
+    { icono: 'solicitudes', valor: solicitudesNuevas, etiqueta: 'Solicitudes nuevas', delta: 'en bandeja' },
+    { icono: 'agenda', valor: hoyTurnos.length, etiqueta: 'Turnos para hoy', delta: `${hoyTurnos.filter((turno) => turno.estado === 'confirmado').length} confirmados` },
+    { icono: 'moneda', valor: mecanicoFormatoMoneda(estadisticas.facturado_mes || 0), etiqueta: 'Facturado este mes', delta: `${estadisticas.servicios_mes || 0} servicios` },
+    { icono: 'estrella', valor: taller.rating?.toFixed ? taller.rating.toFixed(1) : '0.0', etiqueta: 'Rating promedio', delta: `${taller.total_calificaciones || 0} calificaciones` },
   ]
 
-  const diasAgenda = Array.from({ length: 7 }, (_, indice) => {
+  const diasAgenda = Array.from({ length: 14 }, (_, indice) => {
     const fecha = new Date()
     fecha.setDate(fecha.getDate() + indice)
     const nombres = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
@@ -719,17 +1355,14 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
   return (
     <div className="mecanico-aplicacion">
       <aside className="mecanico-lateral">
-        <div className="mecanico-marca mecanico-marca-lateral">
-          <span className="mecanico-marca-punto" />
-          <span>ASISTIGO</span>
-        </div>
+        <AsistiGoLogo className="mecanico-marca mecanico-marca-lateral" />
         <p className="mecanico-marca-etiqueta">Panel de talleres</p>
         <div className="mecanico-taller-lateral">
           <span className="mecanico-taller-icono">
             <MecanicoIcon nombre="servicios" tamano={19} />
           </span>
           <div>
-            <p className="mecanico-taller-nombre">{mecanicoTaller.nombre}</p>
+            <p className="mecanico-taller-nombre">{taller.nombre}</p>
             <p className="mecanico-taller-estado">
               <i />
               Abierto ahora
@@ -755,7 +1388,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
         </nav>
         <div className="mecanico-lateral-divisor" />
         <p className="mecanico-lateral-pie">
-          Diego Torres
+          {taller.mecanico}
           <span>Cuenta verificada</span>
           <button type="button" onClick={onCerrarSesion}>
             Cerrar sesión
@@ -766,10 +1399,10 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
       <div className="mecanico-principal">
         <header className="mecanico-barra-superior">
           <div className="mecanico-barra-cuenta">
-            <div className="mecanico-avatar">{mecanicoTaller.mecanicoInicial}</div>
+            <div className="mecanico-avatar">{taller.mecanicoInicial}</div>
             <div>
               <p className="mecanico-barra-saludo">{saludo}</p>
-              <p className="mecanico-barra-nombre">{mecanicoTaller.mecanico}</p>
+              <p className="mecanico-barra-nombre">{taller.mecanico}</p>
             </div>
           </div>
           <div className="mecanico-busqueda-superior">
@@ -792,11 +1425,21 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
         </header>
 
         <main className="mecanico-contenido">
+          {(backendError || cargandoDatos) && (
+            <div className="user-alerta">
+              <span className="user-alerta-icono"><MecanicoIcon nombre={backendError ? 'alerta' : 'servicios'} tamano={20} /></span>
+              <div>
+                <p className="user-linea-titulo">{backendError ? 'Backend sin respuesta correcta' : 'Cargando datos reales'}</p>
+                <p className="user-linea-subtitulo">{backendError || 'Leyendo informacion del taller desde MySQL.'}</p>
+              </div>
+            </div>
+          )}
+
           {vista === 'inicio' && (
             <section className="mecanico-vista">
               <p className="mecanico-titulo-pagina">Panel general</p>
               <p className="mecanico-subtitulo-pagina">
-                Así viene el día en <b>{mecanicoTaller.nombre}</b>.
+                Así viene el día en <b>{taller.nombre}</b>.
               </p>
               <div className="mecanico-kpi-grilla">
                 {kpis.map((kpi) => (
@@ -820,7 +1463,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                           key={solicitud.id}
                           solicitud={solicitud}
                           onAccion={responderSolicitud}
-                          onChat={() => abrirChat()}
+                          onChat={() => abrirChat(solicitud)}
                           onDescartar={descartarSolicitud}
                         />
                       ))}
@@ -833,7 +1476,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                       </button>
                     </div>
                     {hoyTurnos.map((turno) => (
-                      <MecanicoTurnoFila key={turno.id} turno={turno} onChat={() => abrirChat()} onConfirmar={confirmarTurno} />
+                      <MecanicoTurnoFila key={turno.id} turno={turno} onChat={() => abrirChat(turno)} onConfirmar={confirmarTurno} onCompletar={completarTurno} />
                     ))}
                   </div>
                 </div>
@@ -906,7 +1549,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                     key={solicitud.id}
                     solicitud={solicitud}
                     onAccion={responderSolicitud}
-                    onChat={() => abrirChat()}
+                    onChat={() => abrirChat(solicitud)}
                     onDescartar={descartarSolicitud}
                   />
                 ))
@@ -946,7 +1589,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                 ))}
               </div>
               {turnosDelDia.length ? (
-                turnosDelDia.map((turno) => <MecanicoTurnoFila key={turno.id} turno={turno} onChat={() => abrirChat()} onConfirmar={confirmarTurno} />)
+                turnosDelDia.map((turno) => <MecanicoTurnoFila key={turno.id} turno={turno} onChat={() => abrirChat(turno)} onConfirmar={confirmarTurno} onCompletar={completarTurno} />)
               ) : (
                 <div className="mecanico-vacio">
                   <MecanicoIcon nombre="agenda" tamano={36} />
@@ -964,6 +1607,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                 <div className="mecanico-busqueda-caja">
                   <MecanicoIcon nombre="buscar" tamano={18} />
                   <input
+                    className="mecanico-entrada"
                     value={busquedaClientes}
                     type="text"
                     placeholder="Buscar por nombre, patente o modelo..."
@@ -1147,7 +1791,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                   <input className="mecanico-entrada" value={clienteActual.correo} readOnly />
                   <label className="mecanico-etiqueta">Vehículo</label>
                   <input className="mecanico-entrada" value={`${clienteActual.vehiculo} · ${clienteActual.patente}`} readOnly />
-                  <MecanicoBoton bloque onClick={() => abrirChat()}>
+                  <MecanicoBoton bloque onClick={() => abrirChat(clienteActual)}>
                     <MecanicoIcon nombre="chat" tamano={16} />
                     Contactar por chat
                   </MecanicoBoton>
@@ -1206,7 +1850,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
               </div>
               <div className="mecanico-presupuesto-lista">
                 {presupuestos.map((presupuesto) => (
-                  <MecanicoPresupuestoTarjeta key={presupuesto.id} presupuesto={presupuesto} onChat={() => abrirChat()} />
+                  <MecanicoPresupuestoTarjeta key={presupuesto.id} presupuesto={presupuesto} onChat={() => abrirChat(presupuesto)} />
                 ))}
               </div>
             </section>
@@ -1218,10 +1862,10 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
               <p className="mecanico-subtitulo-pagina">Cómo viene funcionando tu taller este mes.</p>
               <div className="mecanico-kpi-grilla">
                 {[
-                  { icono: 'moneda', valor: '$742.000', etiqueta: 'Facturado este mes', delta: '+8%' },
-                  { icono: 'servicios', valor: '48', etiqueta: 'Servicios realizados', delta: '+6' },
-                  { icono: 'clientes', valor: '86', etiqueta: 'Clientes activos', delta: '+14' },
-                  { icono: 'presupuestos', valor: '71%', etiqueta: 'Presupuestos aceptados', delta: 'estable' },
+                  { icono: 'moneda', valor: mecanicoFormatoMoneda(estadisticas.facturado_mes || 0), etiqueta: 'Facturado este mes', delta: 'historial real' },
+                  { icono: 'servicios', valor: estadisticas.servicios_mes || 0, etiqueta: 'Servicios realizados', delta: 'este mes' },
+                  { icono: 'clientes', valor: estadisticas.clientes_activos || clientes.length, etiqueta: 'Clientes activos', delta: 'con actividad' },
+                  { icono: 'presupuestos', valor: `${estadisticas.presupuestos_aceptados_pct || 0}%`, etiqueta: 'Presupuestos aceptados', delta: 'según respuestas' },
                 ].map((kpi) => <MecanicoKpi key={kpi.etiqueta} {...kpi} />)}
               </div>
               <div className="mecanico-estadisticas-grilla">
@@ -1273,11 +1917,11 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                   </div>
                   <p className="mecanico-antetitulo">Calificación promedio</p>
                   <div className="mecanico-grafico-tarjeta mecanico-rating">
-                    <strong>4.8</strong>
+                    <strong>{taller.rating?.toFixed ? taller.rating.toFixed(1) : '0.0'}</strong>
                     <div>
                       {[1, 2, 3, 4, 5].map((numero) => <MecanicoIcon key={numero} nombre="estrella" tamano={22} />)}
                     </div>
-                    <p>Basado en 63 calificaciones</p>
+                    <p>Basado en {taller.total_calificaciones || 0} calificaciones</p>
                   </div>
                 </div>
               </div>
@@ -1287,7 +1931,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
           {vista === 'chat' && (
             <section className="mecanico-vista">
               <p className="mecanico-titulo-pagina">Chat</p>
-              <p className="mecanico-subtitulo-pagina">Conversaciones con clientes de Asistigo.</p>
+              <p className="mecanico-subtitulo-pagina">Conversaciones con clientes de AsistiGo.</p>
               <div className="mecanico-tarjeta mecanico-chat-lista">
                 {chats.map((chat) => (
                   <button className="mecanico-chat-item" type="button" key={chat.id} onClick={() => abrirChat(chat.id)}>
@@ -1312,7 +1956,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                 <span className="mecanico-chat-avatar"><MecanicoIcon nombre="perfil" tamano={20} /></span>
                 <div>
                   <p>{chatActual.nombre}</p>
-                  <small>Cliente de Asistigo</small>
+                  <small>Cliente de AsistiGo</small>
                 </div>
               </div>
               <div className="mecanico-mensajes">
@@ -1335,9 +1979,9 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
           {vista === 'perfil' && (
             <section className="mecanico-vista">
               <div className="mecanico-perfil-cabecera">
-                <div className="mecanico-avatar mecanico-avatar-grande">{mecanicoTaller.inicial}</div>
-                <p className="mecanico-perfil-nombre">{mecanicoTaller.nombre}</p>
-                <p className="mecanico-linea-subtitulo">{mecanicoTaller.correo}</p>
+                <div className="mecanico-avatar mecanico-avatar-grande">{taller.inicial}</div>
+                <p className="mecanico-perfil-nombre">{taller.nombre}</p>
+                <p className="mecanico-linea-subtitulo">{taller.correo}</p>
                 <div className="mecanico-perfil-estadisticas">
                   <div>
                     <b>{serviciosRealizadosTotal}</b>
@@ -1357,20 +2001,35 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
               <div className="mecanico-seccion">
                 <p className="mecanico-antetitulo">Perfil profesional</p>
                 <form
-                  className="mecanico-tarjeta"
-                  onSubmit={(evento) => {
+                  className="mecanico-tarjeta mecanico-perfil-formulario"
+                  onSubmit={async (evento) => {
                     evento.preventDefault()
-                    mostrarToast('Perfil actualizado')
+                    const datos = new FormData(evento.currentTarget)
+                    try {
+                      await ejecutarAccionMecanico('guardar_perfil', {
+                        nombre: String(datos.get('perfil-nombre') || ''),
+                        especialidad: String(datos.get('perfil-especialidad') || ''),
+                        direccion: String(datos.get('perfil-direccion') || ''),
+                        ciudad: String(datos.get('perfil-ciudad') || taller.ciudad || ''),
+                        descripcion: String(datos.get('perfil-descripcion') || ''),
+                        horarios,
+                      })
+                      mostrarToast('Perfil actualizado')
+                    } catch (error) {
+                      mostrarToast(error.message)
+                    }
                   }}
                 >
                   <label className="mecanico-etiqueta">Nombre del taller</label>
-                  <input className="mecanico-entrada" name="perfil-nombre" defaultValue={mecanicoTaller.nombre} />
+                  <input className="mecanico-entrada" name="perfil-nombre" defaultValue={taller.nombre} />
                   <label className="mecanico-etiqueta">Especialidad</label>
-                  <input className="mecanico-entrada" name="perfil-especialidad" defaultValue={mecanicoTaller.especialidad} />
+                  <input className="mecanico-entrada" name="perfil-especialidad" defaultValue={taller.especialidad} />
                   <label className="mecanico-etiqueta">Dirección</label>
-                  <input className="mecanico-entrada" name="perfil-direccion" defaultValue={mecanicoTaller.direccion} />
+                  <input className="mecanico-entrada" name="perfil-direccion" defaultValue={taller.direccion} />
+                  <label className="mecanico-etiqueta">Ciudad</label>
+                  <input className="mecanico-entrada" name="perfil-ciudad" defaultValue={taller.ciudad || ''} />
                   <label className="mecanico-etiqueta">Descripción</label>
-                  <textarea className="mecanico-entrada mecanico-textarea" name="perfil-descripcion" defaultValue={mecanicoTaller.descripcion} />
+                  <textarea className="mecanico-entrada mecanico-textarea" name="perfil-descripcion" defaultValue={taller.descripcion} />
                   <MecanicoBoton tipo="primario" submit>
                     Guardar cambios
                   </MecanicoBoton>
@@ -1386,9 +2045,27 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                       <div>
                         {horario.activo ? (
                           <>
-                            <input className="mecanico-entrada" type="time" value={horario.abre} readOnly />
+                            <input
+                              className="mecanico-entrada"
+                              type="time"
+                              value={horario.abre}
+                              onChange={(evento) =>
+                                setHorarios((actuales) =>
+                                  actuales.map((item, itemIndice) => (itemIndice === indice ? { ...item, abre: evento.target.value } : item)),
+                                )
+                              }
+                            />
                             <small>a</small>
-                            <input className="mecanico-entrada" type="time" value={horario.cierra} readOnly />
+                            <input
+                              className="mecanico-entrada"
+                              type="time"
+                              value={horario.cierra}
+                              onChange={(evento) =>
+                                setHorarios((actuales) =>
+                                  actuales.map((item, itemIndice) => (itemIndice === indice ? { ...item, cierra: evento.target.value } : item)),
+                                )
+                              }
+                            />
                           </>
                         ) : (
                           <p>Cerrado</p>
@@ -1498,19 +2175,48 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
             </div>
             {modal.tipo === 'notificaciones' && (
               <div className="mecanico-notificaciones">
-                {[
-                  ['solicitudes', 'Nueva solicitud de turno', 'Martín Fernández · cambio de pastillas'],
-                  ['estrella', 'Nueva calificación recibida', 'Sebastián Paz te calificó con 5 estrellas'],
-                  ['presupuestos', 'Presupuesto aceptado', 'Carla Núñez aceptó tu presupuesto'],
-                ].map(([icono, titulo, detalle]) => (
-                  <article className="mecanico-notificacion" key={titulo}>
-                    <span className="mecanico-celda-icono"><MecanicoIcon nombre={icono} tamano={17} /></span>
+                {notificaciones.some((notificacion) => !notificacion.leida) && (
+                  <MecanicoBoton
+                    compacto
+                    onClick={async () => {
+                      try {
+                        await ejecutarAccionMecanico('marcar_notificaciones', { id: 0 })
+                        mostrarToast('Notificaciones marcadas')
+                      } catch (error) {
+                        mostrarToast(error.message)
+                      }
+                    }}
+                  >
+                    Marcar todas como leídas
+                  </MecanicoBoton>
+                )}
+                {notificaciones.map((notificacion) => (
+                  <article className="mecanico-notificacion" key={notificacion.id}>
+                    <span className="mecanico-celda-icono">
+                      <MecanicoIcon nombre={notificacion.tipo === 'presupuesto' ? 'presupuestos' : notificacion.tipo === 'resena' ? 'estrella' : 'solicitudes'} tamano={17} />
+                    </span>
                     <div>
-                      <p>{titulo}</p>
-                      <span>{detalle}</span>
+                      <p>{notificacion.titulo}</p>
+                      <span>{notificacion.mensaje || notificacion.fecha}</span>
+                      {!notificacion.leida && (
+                        <button
+                          className="mecanico-enlace-seccion"
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await ejecutarAccionMecanico('marcar_notificaciones', { id: notificacion.id })
+                            } catch (error) {
+                              mostrarToast(error.message)
+                            }
+                          }}
+                        >
+                          Marcar leída
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
+                {notificaciones.length === 0 && <p className="mecanico-linea-subtitulo">No hay notificaciones.</p>}
               </div>
             )}
             {modal.tipo === 'confirmar-turno' && (
@@ -1541,18 +2247,20 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                 <label className="mecanico-etiqueta">Cliente</label>
                 <select
                   className="mecanico-entrada"
-                  value={presupuestoDraft.cliente}
+                  value={presupuestoDraft.vehiculo_id || ''}
                   onChange={(evento) => {
-                    const clienteElegido = clientes.find((cliente) => cliente.nombre === evento.target.value)
+                    const clienteElegido = clientes.find((cliente) => cliente.vehiculo_id === Number(evento.target.value))
                     setPresupuestoDraft((actual) => ({
                       ...actual,
-                      cliente: evento.target.value,
+                      cliente: clienteElegido ? clienteElegido.nombre : actual.cliente,
+                      cliente_id: clienteElegido ? clienteElegido.cliente_id : actual.cliente_id,
                       vehiculo: clienteElegido ? `${clienteElegido.vehiculo} · ${clienteElegido.patente}` : actual.vehiculo,
+                      vehiculo_id: clienteElegido ? clienteElegido.vehiculo_id : actual.vehiculo_id,
                     }))
                   }}
                 >
                   {clientes.map((cliente) => (
-                    <option key={cliente.id}>{cliente.nombre}</option>
+                    <option key={cliente.id} value={cliente.vehiculo_id}>{cliente.nombre} · {cliente.vehiculo}</option>
                   ))}
                 </select>
                 <label className="mecanico-etiqueta">Ítems del presupuesto</label>
@@ -1587,7 +2295,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
               </div>
             )}
             {modal.tipo === 'registrar-servicio' && (
-              <form onSubmit={agregarServicioRealizado}>
+              <form className="mecanico-modal-formulario" onSubmit={agregarServicioRealizado}>
                 <label className="mecanico-etiqueta">Cliente / vehículo</label>
                 <select className="mecanico-entrada" value={clienteSeleccionado} onChange={(evento) => setClienteSeleccionado(Number(evento.target.value))}>
                   {clientes.map((cliente) => (
@@ -1595,9 +2303,9 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
                   ))}
                 </select>
                 <label className="mecanico-etiqueta">Servicio realizado</label>
-                <select className="mecanico-entrada" name="servicio">
+                <select className="mecanico-entrada" name="servicio_id">
                   {servicios.map((servicio) => (
-                    <option key={servicio.id}>{servicio.nombre}</option>
+                    <option key={servicio.id} value={servicio.id}>{servicio.nombre}</option>
                   ))}
                 </select>
                 <div className="mecanico-modal-fila">
@@ -1619,7 +2327,7 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
             {modal.tipo === 'agregar-turno' && (
               <form onSubmit={agregarTurnoManual}>
                 <label className="mecanico-etiqueta">Cliente</label>
-                <select className="mecanico-entrada" name="clienteId" defaultValue={clientes[0].id}>
+                <select className="mecanico-entrada" name="clienteId" defaultValue={clientes[0]?.id || ''}>
                   {clientes.map((cliente) => (
                     <option value={cliente.id} key={cliente.id}>{cliente.nombre} · {cliente.vehiculo}</option>
                   ))}
@@ -1681,11 +2389,10 @@ function MecanicoPanelPrincipal({ onCerrarSesion }) {
   )
 }
 
-export function MecanicoPanel({ autenticado, onIngresar, onCerrarSesion, onCliente }) {
+export function MecanicoPanel({ autenticado, usuario, onIngresar, onCerrarSesion, onCliente, pushDestino }) {
   if (!autenticado) {
     return <MecanicoLogin onIngresar={onIngresar} onCliente={onCliente} />
   }
 
-  return <MecanicoPanelPrincipal onCerrarSesion={onCerrarSesion} />
+  return <MecanicoPanelPrincipal usuario={usuario} onCerrarSesion={onCerrarSesion} pushDestino={pushDestino} />
 }
-

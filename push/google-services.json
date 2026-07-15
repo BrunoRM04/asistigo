@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "68762492963",
+    "project_id": "asistigo-abc38",
+    "storage_bucket": "asistigo-abc38.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68762492963:android:68e06da946400c6fa85196",
+        "android_client_info": {
+          "package_name": "com.asistigo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXA9fY4eeHfpLW_uNrCBLFa5SqNSK_Nfc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

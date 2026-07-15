@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS notificacion_envios (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  clave VARCHAR(190) NOT NULL,
+  creado_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_notificacion_envios_clave (clave)
+) ENGINE=InnoDB;

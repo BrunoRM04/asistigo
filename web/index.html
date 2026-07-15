@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AsistiGo — El asistente digital de tu auto o moto</title>
+<meta name="description" content="AsistiGo conecta a dueños de autos y motos con talleres de confianza y guarda todo el historial del vehículo con ayuda de inteligencia artificial.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <defs>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M4 16h16M5 16l1.2-4.6A2 2 0 0 1 8.1 10h7.8a2 2 0 0 1 1.9 1.4L19 16M4 16v2.4a.6.6 0 0 0 .6.6H6a.6.6 0 0 0 .6-.6V17M17.4 17v1.4a.6.6 0 0 0 .6.6h1.4a.6.6 0 0 0 .6-.6V16M7 13.5h10"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 4.9L4 16.5V20h3.5l5.3-5.3a4 4 0 0 0 4.9-5.4l-2.6 2.6-2-2z"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20V4a.5.5 0 0 1 .5-.5H7z"/><path d="M14 3.5V8h4.4M9 13h6M9 16h6"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5h16v10H9.5L5.5 19v-3.5H4v-10z"/><path d="M8 10h8M8 12.5h5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.6 7-11.6A7 7 0 0 0 5 9.4C5 14.4 12 21 12 21z"/><circle cx="12" cy="9.4" r="2.4"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 5.9.8-4.3 4.2 1 6-5.2-2.9-5.2 2.9 1-6L3.5 9.8l5.9-.8z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5H2.5z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".2"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="15" rx="1.2"/><path d="M4 10h16M8 3.5v4M16 3.5v4M8 14h2M8 17h2M14 14h2M14 17h2"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.4-2h7.2L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.4"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5l7 2.6v5.4c0 5-3 8-7 9.5-4-1.5-7-4.5-7-9.5V6.1z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5c.6 3.4 1.6 4.4 5 5-3.4.6-4.4 1.6-5 5-.6-3.4-1.6-4.4-5-5 3.4-.6 4.4-1.6 5-5z"/><path d="M19 15c.3 1.7.8 2.2 2.5 2.5-1.7.3-2.2.8-2.5 2.5-.3-1.7-.8-2.2-2.5-2.5 1.7-.3 2.2-.8 2.5-2.5z"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><path d="M9 4.5h6a1 1 0 0 1 1 1V6h1.5a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1H8v-.5a1 1 0 0 1 1-1z"/><path d="M8.5 12l2 2 4-4.2M8.5 17h7"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l3.5-4.2M4 15h1.6M18.4 15H20"/></symbol>
+    <symbol id="i-apple-store" viewBox="0 0 24 24"><path d="M18.7 19.5c-.8 1.2-1.7 2.4-3 2.5-1.3 0-1.8-.8-3.3-.8s-2 .8-3.3.8c-1.3.1-2.3-1.3-3.1-2.5-1.7-2.5-3-7-.8-10.1.9-1.5 2.4-2.5 4.1-2.5 1.3 0 2.5.9 3.3.9s2.3-1.1 3.8-.9c.7 0 2.5.3 3.7 2-.1.1-2.2 1.3-2.2 3.8 0 3 2.7 4 2.7 4-.1.1-.5 1.5-1.9 2.8zM13 5.8c-.7.8-1.7 1.4-2.8 1.3-.1-1.1.4-2.2 1-3 .7-.8 1.8-1.4 2.8-1.5.1 1.2-.3 2.3-1 3.2z"/></symbol>
+    <symbol id="i-google-play" viewBox="0 0 24 24"><path d="M4.4 2.4c-.3.2-.5.6-.5 1.1v17c0 .5.2.9.5 1.1l9.5-9.6z"/><path d="M15.1 10.8 17.9 8 6.1 1.4c-.4-.2-.8-.2-1.1-.1z"/><path d="M17.9 16 15.1 13.2 5 22.7c.3.1.7.1 1.1-.1z"/><path d="M19.4 8.9 16.4 12l3 3.1c1 .6 1.8.1 1.8-1.1v-4c0-1.2-.8-1.7-1.8-1.1z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></symbol>
+  </defs>
+</svg>
+
+<header class="site-header" id="top">
+  <div class="wrap header-inner">
+    <a href="#top" class="logo">
+      <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 4"/><circle cx="16" cy="16" r="3.4" fill="currentColor"/></svg>
+      AsistiGo
+    </a>
+    <nav class="main-nav" id="main-nav">
+      <a href="#usuarios">Para vos</a>
+      <a href="#talleres">Para talleres</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#ia">Inteligencia&nbsp;artificial</a>
+    </nav>
+    <div class="header-cta">
+      <a href="#descargar" class="btn btn-ghost">Descargar app</a>
+    </div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div class="hero-copy reveal">
+        <p class="eyebrow">Asistencia inteligente · autos y motos</p>
+        <h1>Un asistente para tu vehículo que nunca pierde el hilo.</h1>
+        <p class="hero-lead">AsistiGo conecta a dueños de autos y motos con talleres de confianza, y guarda cada service, cada kilómetro y cada alerta en un historial que la IA entiende mejor que vos.</p>
+        <div class="store-row">
+          <a href="#" class="store-btn">
+            <svg width="20" height="20"><use href="#i-apple-store"/></svg>
+            <span><small>Descargar en</small>App Store</span>
+          </a>
+          <a href="#" class="store-btn">
+            <svg width="20" height="20"><use href="#i-google-play"/></svg>
+            <span><small>Disponible en</small>Google Play</span>
+          </a>
+        </div>
+        <p class="hero-note">Gratis para dueños de vehículos. Sin vueltas.</p>
+      </div>
+
+      <div class="hero-visual reveal" aria-hidden="true">
+        <svg class="hero-route" viewBox="0 0 420 360">
+          <path class="route-line" d="M40,300 C 90,230 60,150 130,110 S 260,60 330,90" />
+          <circle class="route-dot" r="4">
+            <animateMotion dur="4.5s" repeatCount="indefinite" path="M40,300 C 90,230 60,150 130,110 S 260,60 330,90"/>
+          </circle>
+        </svg>
+
+        <div class="phone-mock">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="app-topbar">
+              <span class="app-dot"></span> AsistiGo
+            </div>
+            <div class="app-card">
+              <div class="app-card-head">
+                <svg width="22" height="22"><use href="#i-car"/></svg>
+                <div>
+                  <strong>Corolla 2019</strong>
+                  <small>85.400 km</small>
+                </div>
+              </div>
+              <div class="app-chip warn">
+                <svg width="14" height="14"><use href="#i-bell"/></svg>
+                Próximo service en 15 días
+              </div>
+              <div class="app-mini-chart">
+                <span style="--h:30%"></span><span style="--h:45%"></span><span style="--h:38%"></span>
+                <span style="--h:60%"></span><span style="--h:52%"></span><span style="--h:70%"></span>
+              </div>
+            </div>
+            <div class="app-float-chat">
+              <svg width="16" height="16"><use href="#i-chat"/></svg>
+              Taller Rodó respondió tu presupuesto
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpi-band">
+    <div class="wrap kpi-grid">
+      <div class="kpi reveal">
+        <span class="kpi-num" data-count="24" data-suffix="/7">0</span>
+        <p>Recordatorios y alertas activas todo el día</p>
+      </div>
+      <div class="kpi reveal">
+        <span class="kpi-num" data-count="100" data-suffix="%">0</span>
+        <p>Historial del vehículo, digital y siempre a mano</p>
+      </div>
+      <div class="kpi reveal">
+        <span class="kpi-num" data-count="5" data-prefix="&lt;" data-suffix=" min">0</span>
+        <p>Para encontrar un taller cerca tuyo</p>
+      </div>
+      <div class="kpi reveal">
+        <span class="kpi-num" data-static="IA">0</span>
+        <p>Que interpreta síntomas y luces del tablero</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="como-funciona">
+    <div class="wrap">
+      <p class="eyebrow center">El circuito de AsistiGo</p>
+      <h2 class="center">Un ciclo que se repite, cada vez con más criterio</h2>
+      <p class="section-lead center">Cada service que se registra alimenta a la IA, y la IA vuelve con mejores alertas la próxima vez.</p>
+
+      <div class="flow-wrap">
+        <svg class="flow-diagram" viewBox="0 0 720 620" role="img" aria-label="Diagrama circular del flujo de AsistiGo">
+          <circle class="flow-ring" cx="360" cy="310" r="230"/>
+          <g class="flow-nodes"></g>
+        </svg>
+
+        <ol class="flow-list">
+          <li><span class="flow-index">01</span><div><h3>Registrás tu vehículo</h3><p>Auto o moto, con marca, modelo y kilometraje inicial.</p></div></li>
+          <li><span class="flow-index">02</span><div><h3>La IA analiza el historial</h3><p>Cruza antigüedad, kilometraje y reparaciones previas.</p></div></li>
+          <li><span class="flow-index">03</span><div><h3>Recibís una alerta preventiva</h3><p>Antes de que el problema aparezca en la ruta.</p></div></li>
+          <li><span class="flow-index">04</span><div><h3>Agendás turno en un taller</h3><p>Elegís, comparás presupuestos y reservás.</p></div></li>
+          <li><span class="flow-index">05</span><div><h3>El mecánico hace el service</h3><p>Con diagnóstico y fotos de antes y después.</p></div></li>
+          <li><span class="flow-index">06</span><div><h3>El historial se actualiza</h3><p>Y la IA vuelve a hacer seguimiento, con más datos.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt" id="para-vos">
+    <div class="wrap">
+      <p class="eyebrow center">Dos lados, una misma app</p>
+      <h2 class="center">Hecha para quien maneja y para quien repara</h2>
+
+      <div class="tabs" role="tablist" aria-label="Audiencias">
+        <button class="tab-btn is-active" id="tab-usuario" role="tab" aria-selected="true" aria-controls="panel-usuario">
+          <svg width="18" height="18"><use href="#i-car"/></svg> Para vos
+        </button>
+        <button class="tab-btn" id="tab-mecanico" role="tab" aria-selected="false" aria-controls="panel-mecanico">
+          <svg width="18" height="18"><use href="#i-wrench"/></svg> Para tu taller
+        </button>
+      </div>
+
+      <div class="tab-panel is-active" id="panel-usuario" role="tabpanel" aria-labelledby="tab-usuario" >
+        <div class="feature-grid" id="usuarios">
+          <div class="feature"><svg width="22" height="22"><use href="#i-car"/></svg><h3>Todos tus vehículos</h3><p>Registrá uno o varios autos y motos en la misma cuenta.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-clip"/></svg><h3>Historial completo</h3><p>Cada mantenimiento, service y reparación, ordenado y a mano.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-gauge"/></svg><h3>Kilometraje al día</h3><p>Cargalo cuando quieras y dejá que la IA calcule el resto.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-doc"/></svg><h3>Documentos a mano</h3><p>Seguro, patente e inspección técnica, en un solo lugar.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-bell"/></svg><h3>Recordatorios automáticos</h3><p>De service, VTV y trámites, antes de que se venzan.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-pin"/></svg><h3>Talleres cercanos</h3><p>Buscá por zona, especialidad y calificación.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-clip"/></svg><h3>Presupuestos</h3><p>Pedí y compará antes de reservar el turno.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-cal"/></svg><h3>Turnos online</h3><p>Reservá el horario del taller sin llamadas.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-star"/></svg><h3>Calificaciones</h3><p>Elegí talleres con la reputación de otros usuarios.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-chat"/></svg><h3>Chat con el mecánico</h3><p>Consultá dudas antes, durante y después del service.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-spark"/></svg><h3>IA de síntomas</h3><p>Contale qué escuchás o sacale una foto al tablero.</p></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-mecanico" role="tabpanel" aria-labelledby="tab-mecanico" hidden>
+        <div class="feature-grid" id="talleres">
+          <div class="feature"><svg width="22" height="22"><use href="#i-shield"/></svg><h3>Perfil profesional</h3><p>Mostrá tu especialidad, ubicación y trayectoria.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-cal"/></svg><h3>Horarios y servicios</h3><p>Definí qué ofrecés y cuándo atendés.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-bell"/></svg><h3>Solicitudes en vivo</h3><p>Recibí pedidos de presupuesto y turnos al instante.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-cal"/></svg><h3>Agenda ordenada</h3><p>Toda la semana del taller, en una sola vista.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-clip"/></svg><h3>Historial del vehículo</h3><p>Vas al service con contexto, no a ciegas.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-camera"/></svg><h3>Antes y después</h3><p>Cargá diagnóstico y fotos para respaldar el trabajo.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-doc"/></svg><h3>Facturación</h3><p>Próximamente, integrada al flujo del taller.</p></div>
+          <div class="feature"><svg width="22" height="22"><use href="#i-chart"/></svg><h3>Estadísticas</h3><p>Cuántos turnos, qué servicios y cómo te califican.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section ia-section" id="ia">
+    <div class="wrap ia-inner">
+      <div class="ia-copy reveal">
+        <p class="eyebrow">Inteligencia artificial</p>
+        <h2>Le contás lo que escuchás. Ella te dice qué puede ser.</h2>
+        <p class="section-lead">La IA de AsistiGo recomienda mantenimientos según kilometraje y antigüedad, interpreta síntomas por chat o foto, estima costos aproximados y avisa antes de que el problema te agarre en la ruta.</p>
+        <ul class="check-list">
+          <li><svg width="16" height="16"><use href="#i-check"/></svg> Recomendaciones según kilometraje y antigüedad</li>
+          <li><svg width="16" height="16"><use href="#i-check"/></svg> Interpreta síntomas por texto o imagen</li>
+          <li><svg width="16" height="16"><use href="#i-check"/></svg> Estima costos aproximados de reparación</li>
+          <li><svg width="16" height="16"><use href="#i-check"/></svg> Genera alertas preventivas automáticas</li>
+        </ul>
+      </div>
+      <div class="ia-demo reveal" aria-hidden="true">
+        <div class="chat-window">
+          <div class="chat-head"><svg width="16" height="16"><use href="#i-spark"/></svg> Asistente AsistiGo</div>
+          <div class="chat-body" id="chat-body">
+            <div class="bubble user">Se prendió una luz amarilla en el tablero 🔧</div>
+            <div class="bubble bot" id="bot-bubble"><span class="typing"><i></i><i></i><i></i></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt" id="talleres-dashboard">
+    <div class="wrap dash-inner">
+      <div class="dash-card reveal">
+        <div class="dash-head">
+          <span>Panel del taller</span>
+          <span class="live-dot">En vivo</span>
+        </div>
+        <div class="dash-stats">
+          <div><strong data-count="6">0</strong><small>Turnos hoy</small></div>
+          <div><strong data-count="4" data-decimals="1" data-suffix="">0</strong><small>Calificación</small></div>
+          <div><strong data-count="12">0</strong><small>Solicitudes nuevas</small></div>
+        </div>
+        <div class="dash-bars">
+          <span style="--h:40%"></span><span style="--h:65%"></span><span style="--h:50%"></span>
+          <span style="--h:80%"></span><span style="--h:55%"></span><span style="--h:90%"></span><span style="--h:70%"></span>
+        </div>
+        <small class="dash-caption">Solicitudes recibidas, últimos 7 días</small>
+      </div>
+
+      <div class="chart-card reveal">
+        <div class="chart-head">
+          <h3>Prevenir sale menos que lamentar</h3>
+          <p>Costo estimado de mantenimiento a lo largo de la vida útil del vehículo.</p>
+        </div>
+        <svg class="line-chart" viewBox="0 0 480 240" id="line-chart" role="img" aria-label="Gráfico comparando costo de mantenimiento preventivo y reactivo">
+          <line x1="40" y1="200" x2="460" y2="200" class="axis"/>
+          <line x1="40" y1="20" x2="40" y2="200" class="axis"/>
+          <polyline class="line-preventivo" points=""/>
+          <polyline class="line-reactivo" points=""/>
+        </svg>
+        <div class="chart-legend">
+          <span><i class="dot accent"></i> Mantenimiento preventivo</span>
+          <span><i class="dot orange"></i> Mantenimiento reactivo</span>
+        </div>
+        <small class="dash-caption">Estimado ilustrativo, a modo de referencia.</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="download-section" id="descargar">
+    <div class="wrap download-inner">
+      <svg class="dl-route" viewBox="0 0 600 60" aria-hidden="true"><path d="M0,30 Q150,0 300,30 T600,30"/></svg>
+      <p class="eyebrow light center">Llevalo en el bolsillo</p>
+      <h2 class="center light">Tu vehículo, acompañado desde hoy.</h2>
+      <p class="section-lead light center">Descargá AsistiGo y empezá a construir el historial inteligente de tu auto o moto.</p>
+      <div class="store-row center">
+        <a href="#" class="store-btn light">
+          <svg width="20" height="20"><use href="#i-apple-store"/></svg>
+          <span><small>Descargar en</small>App Store</span>
+        </a>
+        <a href="#" class="store-btn light">
+          <svg width="20" height="20"><use href="#i-google-play"/></svg>
+          <span><small>Disponible en</small>Google Play</span>
+        </a>
+      </div>
+      <p class="dl-note">¿Tenés un taller? <a href="#talleres">Sumalo a AsistiGo →</a></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="logo">
+        <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 4"/><circle cx="16" cy="16" r="3.4" fill="currentColor"/></svg>
+        AsistiGo
+      </span>
+      <p>El asistente digital de tu auto o moto.</p>
+    </div>
+    <nav class="footer-nav">
+      <a href="#usuarios">Para vos</a>
+      <a href="#talleres">Para talleres</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#ia">Inteligencia artificial</a>
+    </nav>
+    <p class="footer-copy">© <span id="year"></span> AsistiGo. Todos los derechos reservados.</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
