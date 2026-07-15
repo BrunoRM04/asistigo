@@ -10,8 +10,25 @@ function limpiar_texto(mixed $valor): string
 function asistigo_url_publica(string $ruta): string
 {
     $baseConfigurada = rtrim(trim((string) getenv('ASISTIGO_PUBLIC_URL')), '/');
+    if ($baseConfigurada === '') {
+        $baseConfigurada = rtrim(trim((string) ($_SERVER['ASISTIGO_PUBLIC_URL'] ?? '')), '/');
+    }
+    if ($baseConfigurada === '' && function_exists('apache_getenv')) {
+        $baseConfigurada = rtrim(trim((string) (apache_getenv('ASISTIGO_PUBLIC_URL', true) ?: '')), '/');
+    }
     if ($baseConfigurada !== '') {
         return $baseConfigurada . '/' . ltrim($ruta, '/');
+    }
+
+    $railwayDomain = trim((string) getenv('RAILWAY_PUBLIC_DOMAIN'));
+    if ($railwayDomain === '') {
+        $railwayDomain = trim((string) ($_SERVER['RAILWAY_PUBLIC_DOMAIN'] ?? ''));
+    }
+    if ($railwayDomain === '' && function_exists('apache_getenv')) {
+        $railwayDomain = trim((string) (apache_getenv('RAILWAY_PUBLIC_DOMAIN', true) ?: ''));
+    }
+    if ($railwayDomain !== '') {
+        return 'https://' . $railwayDomain . '/' . ltrim($ruta, '/');
     }
 
     $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
