@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 !backend/.env.example
+!asisti-go/.env.production
 backend/.env
 backend/uploads/chat-ia/*
 !backend/uploads/.htaccess
