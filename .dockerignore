@@ -5,7 +5,7 @@
 .claude
 .codex
 asisti-go
-database
+database/backups
 md
 push
 web

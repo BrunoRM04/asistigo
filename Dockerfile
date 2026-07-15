@@ -13,6 +13,7 @@ COPY railway/php.ini /usr/local/etc/php/conf.d/asistigo.ini
 COPY railway/apache-asistigo.conf /etc/apache2/conf-available/asistigo.conf
 COPY railway/start-apache.sh /usr/local/bin/start-asistigo
 COPY backend /var/www/html/backend
+COPY database /opt/asistigo/database
 
 RUN a2enconf asistigo \
     && chmod +x /usr/local/bin/start-asistigo \
