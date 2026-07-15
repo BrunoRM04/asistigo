@@ -21,6 +21,7 @@ ln -s /etc/apache2/mods-available/mpm_prefork.conf \
 # Copiamos solo las variables conocidas al entorno interno de cada request.
 RUNTIME_ENV_CONF=/etc/apache2/conf-enabled/asistigo-runtime-env.conf
 : > "$RUNTIME_ENV_CONF"
+DETECTED_NAMES=""
 for NAME in \
     ASISTIGO_DB_HOST ASISTIGO_DB_PORT ASISTIGO_DB_NAME \
     ASISTIGO_DB_USER ASISTIGO_DB_PASS ASISTIGO_ALLOWED_ORIGINS \
@@ -32,8 +33,10 @@ do
     if [ -n "$VALUE" ]; then
         ESCAPED_VALUE=$(printf '%s' "$VALUE" | sed 's/\\/\\\\/g; s/"/\\"/g')
         printf 'SetEnv %s "%s"\n' "$NAME" "$ESCAPED_VALUE" >> "$RUNTIME_ENV_CONF"
+        DETECTED_NAMES="$DETECTED_NAMES $NAME"
     fi
 done
+printf 'AsistiGo runtime variables detected:%s\n' "$DETECTED_NAMES"
 
 exec apache2-foreground
 

@@ -17,8 +17,15 @@ try {
         'time' => date('c'),
     ]);
 } catch (Throwable $error) {
-    $dbHost = getenv('ASISTIGO_DB_HOST') ?: ($_SERVER['ASISTIGO_DB_HOST'] ?? '127.0.0.1');
-    $dbPort = getenv('ASISTIGO_DB_PORT') ?: ($_SERVER['ASISTIGO_DB_PORT'] ?? '3306');
+    $apacheEnv = static function (string $nombre, string $predeterminado): string {
+        $valor = getenv($nombre) ?: ($_SERVER[$nombre] ?? '');
+        if ($valor === '' && function_exists('apache_getenv')) {
+            $valor = apache_getenv($nombre, true) ?: '';
+        }
+        return $valor !== '' ? (string) $valor : $predeterminado;
+    };
+    $dbHost = $apacheEnv('ASISTIGO_DB_HOST', '127.0.0.1');
+    $dbPort = $apacheEnv('ASISTIGO_DB_PORT', '3306');
     $dbIp = gethostbyname($dbHost);
     error_log(
         'AsistiGo health database target: '

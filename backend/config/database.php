@@ -11,7 +11,18 @@ function asistigo_db(): PDO
         }
 
         $valorServidor = $_SERVER[$nombre] ?? '';
-        return $valorServidor !== '' ? (string) $valorServidor : $predeterminado;
+        if ($valorServidor !== '') {
+            return (string) $valorServidor;
+        }
+
+        if (function_exists('apache_getenv')) {
+            $valorApache = apache_getenv($nombre, true);
+            if ($valorApache !== false && $valorApache !== '') {
+                return (string) $valorApache;
+            }
+        }
+
+        return $predeterminado;
     };
 
     $host = $env('ASISTIGO_DB_HOST', '127.0.0.1');
