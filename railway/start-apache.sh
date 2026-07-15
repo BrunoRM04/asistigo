@@ -17,5 +17,23 @@ ln -s /etc/apache2/mods-available/mpm_prefork.load \
 ln -s /etc/apache2/mods-available/mpm_prefork.conf \
     /etc/apache2/mods-enabled/mpm_prefork.conf
 
+# mod_php bajo Apache no siempre conserva el entorno completo del proceso.
+# Copiamos solo las variables conocidas al entorno interno de cada request.
+RUNTIME_ENV_CONF=/etc/apache2/conf-enabled/asistigo-runtime-env.conf
+: > "$RUNTIME_ENV_CONF"
+for NAME in \
+    ASISTIGO_DB_HOST ASISTIGO_DB_PORT ASISTIGO_DB_NAME \
+    ASISTIGO_DB_USER ASISTIGO_DB_PASS ASISTIGO_ALLOWED_ORIGINS \
+    ASISTIGO_PUBLIC_URL ASISTIGO_FIREBASE_JSON_BASE64 \
+    OPENAI_API_KEY OPENAI_MODEL OPENAI_TIMEOUT_SECONDS \
+    RAILWAY_ENVIRONMENT_NAME RAILWAY_PUBLIC_DOMAIN
+do
+    VALUE=$(printenv "$NAME" 2>/dev/null || true)
+    if [ -n "$VALUE" ]; then
+        ESCAPED_VALUE=$(printf '%s' "$VALUE" | sed 's/\\/\\\\/g; s/"/\\"/g')
+        printf 'SetEnv %s "%s"\n' "$NAME" "$ESCAPED_VALUE" >> "$RUNTIME_ENV_CONF"
+    fi
+done
+
 exec apache2-foreground
 
